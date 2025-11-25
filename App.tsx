@@ -1,15 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { useEngineSimulation } from './hooks/useEngineSimulation';
-import { CircularGauge, BarGauge, GaugeBug } from './components/Gauge';
+import { CircularGauge, GaugeBug } from './components/Gauge';
 import { ControlPanel } from './components/Controls';
-import { TelemetryChart } from './components/TelemetryChart';
+import { TelemetryChart, ChartSeries, ChartAxis } from './components/TelemetryChart';
 import { FirePanel } from './components/FirePanel';
 import { FailuresMenu } from './components/FailuresMenu';
 import { analyzeEngineStatus } from './services/geminiService';
 import { EngineTelemetry } from './types';
 import { Activity, Radio, Cpu, ShieldCheck, AlertOctagon } from 'lucide-react';
 
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 100;
 
 // Bug Configurations
 const N1_BUGS: GaugeBug[] = [
@@ -23,6 +24,22 @@ const N2_BUGS: GaugeBug[] = [
 const EGT_BUGS: GaugeBug[] = [
     { value: 750, color: '#facc15' }, // Start Limit
     { value: 950, color: '#ef4444' } // Max Continuous
+];
+
+// Chart Configuration
+const CHART_SERIES: ChartSeries[] = [
+    { dataKey: 'n1', name: 'N1 Fan', color: '#22d3ee', unit: '%', yAxisId: 'pct' },
+    { dataKey: 'n2', name: 'N2 Core', color: '#3b82f6', unit: '%', yAxisId: 'pct' },
+    { dataKey: 'egt', name: 'EGT', color: '#f59e0b', unit: '°C', yAxisId: 'temp' },
+    { dataKey: 'ff', name: 'Fuel Flow', color: '#10b981', unit: 'kg/h', yAxisId: 'flow' },
+    { dataKey: 'vib', name: 'Vib', color: '#a855f7', unit: 'ips', yAxisId: 'vib' }
+];
+
+const CHART_AXES: ChartAxis[] = [
+    { id: 'pct', domain: [0, 110], orientation: 'left' },
+    { id: 'temp', domain: [0, 1200], orientation: 'right' },
+    { id: 'flow', domain: [0, 6000], orientation: 'right', hide: true }, // Hidden axis for scaling
+    { id: 'vib', domain: [0, 10], orientation: 'left', hide: true }      // Hidden axis for scaling
 ];
 
 const App: React.FC = () => {
@@ -131,7 +148,7 @@ const App: React.FC = () => {
                 <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Activity size={14} /> Primary Engine Indication
                 </h2>
-                <div className="grid grid-cols-1 gap-6">
+                <div className="flex flex-col gap-6">
                     <div className="flex justify-center">
                         <CircularGauge 
                             label="N1 Fan Speed" 
@@ -170,50 +187,54 @@ const App: React.FC = () => {
             </div>
 
             <div className="flex-1 flex flex-col gap-3">
-                 <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2">Secondary Indication</h2>
-                 <BarGauge label="Fuel Flow" value={telemetry.ff} min={0} max={5000} unit="kg/h" />
-                 <BarGauge label="Oil Pressure" value={telemetry.oilP} min={0} max={100} unit="psi" warningHigh={90} criticalHigh={5} />
-                 <BarGauge label="Oil Temp" value={telemetry.oilT} min={0} max={150} unit="°C" warningHigh={130} />
-                 <BarGauge label="Vibration" value={telemetry.vib} min={0} max={5} unit="ips" warningHigh={3} criticalHigh={4} />
+                 <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest mt-2 border-t border-slate-800 pt-4">Secondary Indication</h2>
+                 
+                 {/* Secondary Gauge Grid */}
+                 <div className="grid grid-cols-2 gap-4">
+                    <CircularGauge 
+                        label="Fuel Flow" 
+                        value={telemetry.ff} 
+                        min={0} max={5000} 
+                        unit="kg/h" 
+                        size="sm"
+                    />
+                    <CircularGauge 
+                        label="Vibration" 
+                        value={telemetry.vib} 
+                        min={0} max={5} 
+                        unit="ips" 
+                        size="sm"
+                        warningHigh={3} 
+                        criticalHigh={4} 
+                    />
+                    <CircularGauge 
+                        label="Oil Press" 
+                        value={telemetry.oilP} 
+                        min={0} max={100} 
+                        unit="psi" 
+                        size="sm"
+                        warningHigh={90} 
+                        criticalHigh={5} 
+                    />
+                    <CircularGauge 
+                        label="Oil Temp" 
+                        value={telemetry.oilT} 
+                        min={0} max={150} 
+                        unit="°C" 
+                        size="sm"
+                        warningHigh={130} 
+                    />
+                 </div>
             </div>
         </div>
 
-        {/* Center: Analytics & Graphs */}
-        <div className="flex-1 bg-slate-950 p-6 flex flex-col gap-6 overflow-y-auto">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 h-full">
-                <TelemetryChart 
-                  data={history} 
-                  dataKey="n1" 
-                  color="#22d3ee" 
-                  label="N1 Performance" 
-                  min={0}
-                  max={110}
-                />
-                <TelemetryChart 
-                  data={history} 
-                  dataKey="egt" 
-                  color="#f59e0b" 
-                  label="Exhaust Gas Temp" 
-                  min={0}
-                  max={1000}
-                />
-                <TelemetryChart 
-                  data={history} 
-                  dataKey="ff" 
-                  color="#10b981" 
-                  label="Fuel Consumption" 
-                  min={0}
-                  max={6000}
-                />
-                <TelemetryChart 
-                  data={history} 
-                  dataKey="vib" 
-                  color="#a855f7" 
-                  label="Vibration Analysis" 
-                  min={0}
-                  max={5}
-                />
-            </div>
+        {/* Center: Analytics & Charts */}
+        <div className="flex-1 bg-slate-950 p-6 flex flex-col gap-8 overflow-hidden">
+            <TelemetryChart 
+                data={history}
+                series={CHART_SERIES}
+                axes={CHART_AXES}
+            />
         </div>
 
         {/* Right: AI Copilot & Fire System */}

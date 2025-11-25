@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export interface GaugeBug {
@@ -36,13 +37,19 @@ export const CircularGauge: React.FC<GaugeProps> = ({
     strokeColor = '#fbbf24';
   }
 
-  const radius = size === 'lg' ? 60 : size === 'md' ? 45 : 30;
-  const strokeWidth = size === 'lg' ? 12 : 8;
+  // Size Configuration
+  const isSmall = size === 'sm';
+  const radius = size === 'lg' ? 60 : size === 'md' ? 45 : 32;
+  const strokeWidth = size === 'lg' ? 12 : size === 'md' ? 8 : 6;
   const dim = size === 'lg' ? 160 : size === 'md' ? 120 : 80;
   const center = dim / 2;
+  
+  // Font sizes based on gauge size
+  const valueTextSize = size === 'lg' ? 'text-3xl' : size === 'md' ? 'text-xl' : 'text-lg';
+  const labelTextSize = size === 'lg' ? 'text-xs' : 'text-[10px]';
 
   return (
-    <div className="flex flex-col items-center justify-center p-2 bg-slate-800/50 rounded-xl border border-slate-700/50 backdrop-blur-sm shadow-lg">
+    <div className={`flex flex-col items-center justify-center ${isSmall ? 'p-1' : 'p-2'} bg-slate-800/50 rounded-xl border border-slate-700/50 backdrop-blur-sm shadow-lg`}>
       <div className="relative" style={{ width: dim, height: dim }}>
         {/* Background Arc */}
         <svg className="w-full h-full transform rotate-90">
@@ -71,8 +78,12 @@ export const CircularGauge: React.FC<GaugeProps> = ({
                 >
                     {/* The Bug Marker (Trapezoid/Triangle on outer rim) */}
                     <div 
-                        className="absolute top-[8px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[8px] border-l-transparent border-r-transparent shadow-sm"
-                        style={{ borderTopColor: bug.color, filter: 'drop-shadow(0px 1px 1px rgba(0,0,0,0.5))' }}
+                        className={`absolute left-1/2 -translate-x-1/2 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[8px] border-l-transparent border-r-transparent shadow-sm`}
+                        style={{ 
+                            top: isSmall ? '4px' : '8px',
+                            borderTopColor: bug.color, 
+                            filter: 'drop-shadow(0px 1px 1px rgba(0,0,0,0.5))' 
+                        }}
                     ></div>
                 </div>
             )
@@ -84,19 +95,22 @@ export const CircularGauge: React.FC<GaugeProps> = ({
             style={{ transform: `rotate(${rotation}deg)` }}
         >
              <div className="w-1 h-1/2 bg-transparent relative">
-                <div className={`absolute top-2 left-1/2 -translate-x-1/2 w-1.5 h-4 ${color.replace('text-', 'bg-')} rounded-full shadow-[0_0_10px_currentColor]`}></div>
+                <div className={`absolute top-2 left-1/2 -translate-x-1/2 ${isSmall ? 'w-1 h-3' : 'w-1.5 h-4'} ${color.replace('text-', 'bg-')} rounded-full shadow-[0_0_10px_currentColor]`}></div>
              </div>
         </div>
 
         {/* Digital Readout centered */}
         <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
-          <span className={`font-mono font-bold ${size === 'lg' ? 'text-3xl' : 'text-xl'} ${color} drop-shadow-md`}>
+          <span className={`font-mono font-bold ${valueTextSize} ${color} drop-shadow-md`}>
             {value.toFixed(0)}
           </span>
-          <span className="text-xs text-slate-400 uppercase">{unit}</span>
+          {!isSmall && <span className="text-xs text-slate-400 uppercase">{unit}</span>}
         </div>
       </div>
-      <span className="mt-2 text-xs font-semibold tracking-wider text-slate-400 uppercase">{label}</span>
+      <div className="mt-1 flex flex-col items-center">
+        <span className={`${labelTextSize} font-semibold tracking-wider text-slate-400 uppercase`}>{label}</span>
+        {isSmall && <span className="text-[9px] text-slate-500 font-mono">{unit}</span>}
+      </div>
     </div>
   );
 };

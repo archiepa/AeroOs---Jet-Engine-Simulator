@@ -1,75 +1,102 @@
+
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { EngineTelemetry } from '../types';
+
+export interface ChartSeries {
+  dataKey: keyof EngineTelemetry;
+  name: string;
+  color: string;
+  unit: string;
+  yAxisId: string;
+}
+
+export interface ChartAxis {
+  id: string;
+  domain: [number, number];
+  orientation: 'left' | 'right';
+  label?: string;
+  hide?: boolean;
+}
 
 interface TelemetryChartProps {
   data: EngineTelemetry[];
-  dataKey: keyof EngineTelemetry;
-  color: string;
-  label: string;
-  min?: number;
-  max?: number;
+  series: ChartSeries[];
+  axes: ChartAxis[];
 }
 
 export const TelemetryChart: React.FC<TelemetryChartProps> = ({ 
   data, 
-  dataKey, 
-  color, 
-  label,
-  min,
-  max
+  series,
+  axes
 }) => {
-  const domain: [number | string, number | string] = [min ?? 'auto', max ?? 'auto'];
-
   return (
-    <div className="w-full h-48 bg-slate-800/30 rounded-lg border border-slate-700/50 p-2 flex flex-col">
-      <div className="flex justify-between items-center px-2 mb-2">
-        <span className="text-xs font-bold text-slate-400 uppercase">{label} History</span>
-        <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: color }}></div>
-            <span className="text-xs font-mono text-slate-500">LIVE</span>
-        </div>
+    <div className="w-full h-full bg-slate-900/50 rounded-lg border border-slate-700/50 p-4 flex flex-col backdrop-blur-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-500 animate-pulse"></span>
+            Combined Telemetry Stream
+        </h3>
       </div>
-      <div className="flex-1 min-h-0">
+      
+      <div className="flex-1 min-h-0 w-full">
         <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data}>
-            <defs>
-                <linearGradient id={`color${dataKey}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={color} stopOpacity={0}/>
-                </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+            <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} opacity={0.5} />
+            
             <XAxis 
                 dataKey="timestamp" 
                 hide={true} 
+                type="number" 
                 domain={['dataMin', 'dataMax']} 
-                type="number"
             />
-            <YAxis 
-                hide={false} 
-                tick={{fill: '#64748b', fontSize: 10}} 
-                axisLine={false} 
-                tickLine={false}
-                domain={domain}
-                width={35}
-            />
+
+            {axes.map((axis) => (
+                <YAxis 
+                    key={axis.id}
+                    yAxisId={axis.id}
+                    orientation={axis.orientation}
+                    domain={axis.domain}
+                    hide={axis.hide}
+                    tick={{fill: '#64748b', fontSize: 10, fontFamily: 'monospace'}} 
+                    axisLine={false} 
+                    tickLine={false}
+                    width={40}
+                />
+            ))}
+
             <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px' }}
-                itemStyle={{ color: '#e2e8f0', fontFamily: 'monospace' }}
+                contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)' }}
+                itemStyle={{ fontFamily: 'monospace', fontSize: '12px', padding: '2px 0' }}
                 labelStyle={{ display: 'none' }}
-                formatter={(value: number) => [value.toFixed(1), label]}
+                formatter={(value: number, name: string, props: any) => {
+                    const unit = props.payload ? series.find(s => s.name === name)?.unit : '';
+                    return [`${value.toFixed(1)} ${unit}`, name];
+                }}
             />
-            <Area 
-                type="monotone" 
-                dataKey={dataKey} 
-                stroke={color} 
-                fillOpacity={1} 
-                fill={`url(#color${dataKey})`} 
-                strokeWidth={2}
-                isAnimationActive={false} // Disable animation for smoother realtime updates
+            
+            <Legend 
+                verticalAlign="top" 
+                height={36}
+                iconType="circle"
+                wrapperStyle={{ fontSize: '12px', fontFamily: 'monospace', textTransform: 'uppercase', paddingBottom: '10px' }}
             />
-            </AreaChart>
+
+            {series.map((s) => (
+                <Line
+                    key={s.dataKey}
+                    yAxisId={s.yAxisId}
+                    type="monotone"
+                    dataKey={s.dataKey}
+                    name={s.name}
+                    stroke={s.color}
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0 }}
+                    isAnimationActive={false}
+                />
+            ))}
+            </LineChart>
         </ResponsiveContainer>
       </div>
     </div>
