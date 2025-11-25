@@ -6,6 +6,7 @@ import { ControlPanel } from './components/Controls';
 import { TelemetryChart, ChartSeries, ChartAxis } from './components/TelemetryChart';
 import { FirePanel } from './components/FirePanel';
 import { FailuresMenu } from './components/FailuresMenu';
+import { EngineSchematic } from './components/EngineSchematic';
 import { analyzeEngineStatus } from './services/geminiService';
 import { EngineTelemetry } from './types';
 import { Activity, Radio, Cpu, ShieldCheck, AlertOctagon } from 'lucide-react';
@@ -234,12 +235,24 @@ const App: React.FC = () => {
         </div>
 
         {/* Center: Analytics & Charts */}
-        <div className="flex-1 bg-slate-950 p-6 flex flex-col gap-8 overflow-hidden">
-            <TelemetryChart 
-                data={history}
-                series={CHART_SERIES}
-                axes={CHART_AXES}
-            />
+        <div className="flex-1 bg-slate-950 p-6 flex flex-col gap-6 overflow-hidden">
+            <div className="flex-1 min-h-0">
+                <TelemetryChart 
+                    data={history}
+                    series={CHART_SERIES}
+                    axes={CHART_AXES}
+                />
+            </div>
+            
+            <div className="shrink-0">
+                 <EngineSchematic 
+                    n1={telemetry.n1}
+                    n2={telemetry.n2}
+                    egt={telemetry.egt}
+                    state={state}
+                    failures={failures}
+                 />
+            </div>
         </div>
 
         {/* Right: AI Copilot & Fire System */}
