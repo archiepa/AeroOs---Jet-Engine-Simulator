@@ -1,3 +1,4 @@
+
 export interface EngineTelemetry {
   n1: number; // Fan speed %
   n2: number; // Core speed %
@@ -40,6 +41,13 @@ export interface FailureState {
     oilPumpFailure: boolean;
     fuelPumpFailure: boolean;
     vibSensorFault: boolean;
+}
+
+export interface FailureConfig {
+    id: keyof FailureState;
+    label: string;
+    delay: number; // seconds
+    shortcut: string;
 }
 
 export interface FireSystemState {

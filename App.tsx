@@ -49,7 +49,9 @@ const App: React.FC = () => {
       setControls, 
       telemetry, 
       failures,
-      setFailures,
+      failureConfigs,
+      toggleFailure,
+      updateFailureConfig,
       fireSystem,
       dischargeBottle,
       toggleFireHandle
@@ -130,13 +132,16 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Failures Overlay */}
-        <FailuresMenu 
-            isOpen={showFailures} 
-            onClose={() => setShowFailures(false)} 
-            failures={failures}
-            setFailures={setFailures}
-        />
+        {/* Failures Overlay - Conditionally Rendered */}
+        {showFailures && (
+            <FailuresMenu 
+                onClose={() => setShowFailures(false)} 
+                failures={failures}
+                failureConfigs={failureConfigs}
+                toggleFailure={toggleFailure}
+                updateFailureConfig={updateFailureConfig}
+            />
+        )}
       </header>
 
       {/* Main Content Grid */}

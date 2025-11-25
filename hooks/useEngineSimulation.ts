@@ -1,7 +1,15 @@
+
 import { useState, useEffect, useRef } from 'react';
-import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState } from '../types';
+import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig } from '../types';
 
 const SIM_RATE = 20; // ms
+
+const DEFAULT_FAILURES: FailureConfig[] = [
+    { id: 'engineFire', label: 'Engine Fire', delay: 0, shortcut: '' },
+    { id: 'oilPumpFailure', label: 'Oil Pump Fail', delay: 0, shortcut: '' },
+    { id: 'fuelPumpFailure', label: 'Fuel Pump Fail', delay: 0, shortcut: '' },
+    { id: 'vibSensorFault', label: 'Vib Sensor Fault', delay: 0, shortcut: '' }
+];
 
 export const useEngineSimulation = () => {
   const [state, setState] = useState<EngineState>(EngineState.OFF);
@@ -21,6 +29,10 @@ export const useEngineSimulation = () => {
     fuelPumpFailure: false,
     vibSensorFault: false
   });
+
+  const [failureConfigs, setFailureConfigs] = useState<FailureConfig[]>(DEFAULT_FAILURES);
+  // Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> to support environments without Node types
+  const pendingTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const [fireSystem, setFireSystem] = useState<FireSystemState>({
     loopA: 'NORMAL',
@@ -49,6 +61,54 @@ export const useEngineSimulation = () => {
     oilT: 20,
     oilFailureTimer: 0
   });
+
+  // Handle Failure Toggling with Delay
+  const toggleFailure = (id: keyof FailureState) => {
+      const config = failureConfigs.find(c => c.id === id);
+      const isActive = failures[id];
+
+      // Clear any pending timeout for this failure
+      if (pendingTimeouts.current.has(id)) {
+          clearTimeout(pendingTimeouts.current.get(id)!);
+          pendingTimeouts.current.delete(id);
+      }
+
+      if (isActive) {
+          // If active, turn off immediately
+          setFailures(prev => ({ ...prev, [id]: false }));
+      } else {
+          // If inactive, check for delay
+          if (config && config.delay > 0) {
+              const timeout = setTimeout(() => {
+                  setFailures(prev => ({ ...prev, [id]: true }));
+                  pendingTimeouts.current.delete(id);
+              }, config.delay * 1000);
+              pendingTimeouts.current.set(id, timeout);
+          } else {
+              setFailures(prev => ({ ...prev, [id]: true }));
+          }
+      }
+  };
+
+  const updateFailureConfig = (id: string, updates: Partial<FailureConfig>) => {
+      setFailureConfigs(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  // Keyboard Shortcuts
+  useEffect(() => {
+      const handleKeyDown = (e: KeyboardEvent) => {
+          // Ignore if typing in an input
+          if ((e.target as HTMLElement).tagName === 'INPUT') return;
+
+          const config = failureConfigs.find(c => c.shortcut.toLowerCase() === e.key.toLowerCase());
+          if (config) {
+              toggleFailure(config.id);
+          }
+      };
+
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [failureConfigs, failures]); // Dependencies ensure we have latest state if needed, though toggleFailure uses function updates
 
   // Handle Fire Suppression Actions
   const dischargeBottle = (bottle: 'bottle1' | 'bottle2') => {
@@ -306,8 +366,10 @@ export const useEngineSimulation = () => {
       controls, 
       setControls, 
       telemetry, 
-      failures, 
-      setFailures,
+      failures,
+      failureConfigs,
+      toggleFailure,
+      updateFailureConfig,
       fireSystem,
       dischargeBottle,
       toggleFireHandle
