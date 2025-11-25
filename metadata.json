@@ -1,0 +1,5 @@
+{
+  "name": "AeroOS - Jet Engine Management",
+  "description": "A high-fidelity jet engine control system and operating interface with real-time physics simulation and AI-powered telemetry analysis.",
+  "requestFramePermissions": []
+}
