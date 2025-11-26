@@ -72,9 +72,9 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
            <svg viewBox="0 0 800 300" className={`w-full h-full max-w-3xl drop-shadow-2xl transition-all duration-1000 ${isSeized ? 'grayscale brightness-50 contrast-125' : ''}`}>
               <defs>
                  <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
-                     <stop offset="0%" stopColor="#475569" />
-                     <stop offset="50%" stopColor="#94a3b8" />
-                     <stop offset="100%" stopColor="#475569" />
+                     <stop offset="0%" stopColor="#94a3b8" />
+                     <stop offset="50%" stopColor="#f1f5f9" />
+                     <stop offset="100%" stopColor="#64748b" />
                  </linearGradient>
               </defs>
 
@@ -91,13 +91,10 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
               {/* Shafts - Broken if Seized */}
               {isSeized ? (
                 <g>
-                   {/* Broken Low Pressure Shaft */}
-                   <rect x="100" y="152" width="200" height="4" fill="#64748b" transform="rotate(2, 200, 152)" />
-                   <rect x="350" y="145" width="300" height="4" fill="#64748b" transform="rotate(-3, 500, 145)" />
-                   
-                   {/* Broken High Pressure Shaft */}
-                   <rect x="200" y="145" width="200" height="10" fill="#1e293b" transform="rotate(-1, 300, 145)" />
-                   <rect x="450" y="150" width="200" height="10" fill="#1e293b" transform="rotate(4, 550, 150)" />
+                   {/* Broken Low Pressure Shaft (jagged path) */}
+                   <path d="M 100 148 L 250 146 L 300 150 L 450 147 L 650 151 L 648 155 L 450 151 L 302 154 L 250 150 L 102 152 Z" fill="#94a3b8" />
+                   {/* Broken High Pressure Shaft (jagged path) */}
+                   <path d="M 200 145 L 350 142 L 500 146 L 650 144 L 648 155 L 500 154 L 352 150 L 202 153 Z" fill="#334155" />
                 </g>
               ) : (
                 <g>
@@ -106,41 +103,40 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
                 </g>
               )}
 
-              {/* N2 Compressor Stages */}
+              {/* N2 Compressor & Turbine Stages */}
               <g opacity={isSeized ? 0.6 : 1}>
                   {[220, 240, 260, 280, 300, 320, 340].map((x, i) => (
-                      <line 
+                      <path 
                         key={`comp-${i}`} 
-                        x1={x} y1="100" x2={x} y2="200" 
-                        stroke={compStatus.label === 'CRITICAL' ? '#ef4444' : '#3b82f6'} 
-                        strokeWidth="4" 
+                        d={`M ${x-2} 100 L ${x+2} 102 L ${x-1} 200 L ${x-5} 198 Z`}
+                        stroke={compStatus.label === 'CRITICAL' ? '#b91c1c' : '#3b82f6'} 
+                        fill={compStatus.label === 'CRITICAL' ? '#ef4444' : '#3b82f6'} 
                         transform={isSeized ? `rotate(${Math.random() * 20 - 10}, ${x}, 150)` : ""}
                       />
                   ))}
                   {[550, 580, 610].map((x, i) => (
-                      <line 
+                      <path 
                         key={`turb-${i}`} 
-                        x1={x} y1="110" x2={x} y2="190" 
-                        stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#a855f7'} 
-                        strokeWidth="4" 
+                        d={`M ${x-2} 110 L ${x+2} 108 L ${x+1} 190 L ${x-3} 192 Z`}
+                        stroke={turbStatus.label === 'CRITICAL' ? '#b91c1c' : '#a855f7'} 
+                        fill={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#a855f7'}
                         transform={isSeized ? `rotate(${Math.random() * 20 - 10}, ${x}, 150)` : ""}
                       />
                   ))}
               </g>
 
-              {/* N1 Fan */}
+              {/* N1 Fan & Low-Pressure Turbine */}
               <g opacity={isSeized ? 0.6 : 1}>
-                  <line 
-                    x1="120" y1="55" x2="120" y2="245" 
-                    stroke={fanStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} 
-                    strokeWidth="12" 
-                    strokeLinecap="round" 
+                  <path 
+                    d="M 115 55 C 120 100, 120 200, 115 245 L 125 245 C 130 200, 130 100, 125 55 Z"
+                    stroke={fanStatus.label === 'CRITICAL' ? '#b91c1c' : '#22d3ee'} 
+                    fill={fanStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'}
                     transform={isSeized ? "rotate(15, 120, 150)" : ""}
                   />
-                  <line 
-                    x1="680" y1="100" x2="680" y2="200" 
-                    stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} 
-                    strokeWidth="6" 
+                  <path 
+                    d="M 678 100 C 680 133, 680 167, 678 200 L 682 200 C 684 167, 684 133, 682 100 Z"
+                    stroke={turbStatus.label === 'CRITICAL' ? '#b91c1c' : '#22d3ee'} 
+                    fill={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'}
                     transform={isSeized ? "rotate(-10, 680, 150)" : ""}
                   />
               </g>

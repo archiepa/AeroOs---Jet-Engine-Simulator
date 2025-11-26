@@ -1,7 +1,6 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { FireSystemState } from '../types';
-import { AlertTriangle } from 'lucide-react';
 
 interface FirePanelProps {
   fireSystem: FireSystemState;
@@ -9,146 +8,160 @@ interface FirePanelProps {
   onDischarge: (bottle: 'bottle1' | 'bottle2') => void;
 }
 
+const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
+    <div className={`w-2 h-2 rounded-full bg-slate-800 border border-slate-900 flex items-center justify-center shadow-sm ${className}`}>
+        <div className="w-full h-[1px] bg-slate-900 rotate-45"></div>
+        <div className="absolute w-full h-[1px] bg-slate-900 -rotate-45"></div>
+    </div>
+);
+
 export const FirePanel: React.FC<FirePanelProps> = ({ fireSystem, onPullHandle, onDischarge }) => {
+  const [isTesting, setIsTesting] = useState(false);
   const isFire = fireSystem.loopA === 'FIRE' || fireSystem.loopB === 'FIRE';
 
+  const handleTestMouseDown = () => setIsTesting(true);
+  const handleTestMouseUp = () => setIsTesting(false);
+
   return (
-    <div className="flex-1 bg-neutral-900 border-l border-neutral-800 flex flex-col p-4 select-none font-sans">
-      <div className="flex items-center gap-2 mb-8 pb-2 border-b border-neutral-800">
-        <AlertTriangle className="text-red-500" size={18} />
-        <h3 className="text-sm font-bold text-neutral-400 uppercase tracking-widest">Fire Protection</h3>
-      </div>
-
-      <div className="flex-1 flex flex-col items-center gap-8">
+    <div className="flex-1 bg-slate-700 border-t-2 border-l-2 border-slate-600 border-b-4 border-r-4 border-black/50 p-4 select-none font-sans flex flex-col items-center justify-center relative">
+        <ScrewHead className="absolute top-2 left-2" />
+        <ScrewHead className="absolute top-2 right-2" />
+        <ScrewHead className="absolute bottom-2 left-2" />
+        <ScrewHead className="absolute bottom-2 right-2" />
         
-        {/* Fire Loop Indicators */}
-        <div className="flex gap-12 w-full justify-center">
-            <LoopIndicator label="LOOP A" status={fireSystem.loopA} />
-            <LoopIndicator label="LOOP B" status={fireSystem.loopB} />
+        <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1">
+            <span className="font-bold text-slate-400 text-sm tracking-[0.2em]">F</span>
+            <span className="font-bold text-slate-400 text-sm tracking-[0.2em]">I</span>
+            <span className="font-bold text-slate-400 text-sm tracking-[0.2em]">R</span>
+            <span className="font-bold text-slate-400 text-sm tracking-[0.2em]">E</span>
         </div>
-
-        {/* A320 Style Fire Push Button */}
-        <div className="relative flex flex-col items-center">
-            <div className="text-[10px] text-neutral-600 font-mono mb-2 uppercase tracking-widest">Engine 1 Fire Push</div>
+        
+        {/* Main Vertical Group */}
+        <div className="flex flex-col items-center justify-center gap-6 w-full">
             
-            <div className="relative w-36 h-36 bg-[#1a1a1a] rounded-sm border border-neutral-700 shadow-[inset_0_2px_10px_rgba(0,0,0,0.8)] flex items-center justify-center p-1">
-                {/* The Button */}
-                <button 
-                    onClick={onPullHandle}
-                    className={`
-                        relative w-full h-full transition-all duration-300 transform border-2
-                        flex flex-col items-center justify-center
-                        ${fireSystem.handlePulled 
-                            ? 'bg-[#2a2a2a] border-neutral-500 scale-105 shadow-[0_20px_40px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.1)] translate-y-[-8px] z-10' 
-                            : 'bg-[#151515] border-neutral-800 scale-100 shadow-none'
-                        }
-                    `}
-                >
-                    {/* The Red Cover Layer */}
+            {/* Top Group: Handle */}
+            <div className="flex flex-col items-center gap-4">
+                <span className="text-2xl font-black text-slate-300 tracking-widest">ENG 1</span>
+
+                {/* Guarded Fire Handle */}
+                <div className="relative">
+                    <button 
+                        onClick={onPullHandle}
+                        className={`
+                            relative w-32 h-20 rounded-sm border-2 transition-all duration-200
+                            flex items-center justify-center
+                            ${(isFire || isTesting)
+                                ? 'bg-red-600 border-red-400 animate-pulse shadow-[0_0_20px_rgba(239,68,68,0.7),inset_0_0_10px_rgba(255,150,150,0.5)]' 
+                                : 'bg-red-900 border-black/50 shadow-[inset_0_2px_4px_black]'
+                            }
+                            ${fireSystem.handlePulled ? 'translate-y-2' : ''}
+                        `}
+                    >
+                         <span className={`
+                            font-bold text-2xl tracking-widest transition-all
+                            ${(isFire || isTesting)
+                                ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,1)]' 
+                                : 'text-red-400/50'}
+                         `}>
+                             FIRE
+                         </span>
+                    </button>
+                    {/* Guard */}
                     <div className={`
-                        absolute inset-0 flex flex-col items-center justify-center gap-0.5
-                        transition-colors duration-200
-                        ${isFire 
-                            ? 'bg-red-600 animate-pulse shadow-[inset_0_0_30px_#991b1b]' 
-                            : 'bg-transparent'
-                        }
+                        absolute -bottom-1 left-1/2 -translate-x-1/2 w-36 h-20 
+                        border-4 border-red-500 bg-red-500/10 rounded-sm
+                        transition-transform duration-300 origin-top
+                        pointer-events-none
+                        ${fireSystem.handlePulled ? 'rotate-x-[-120deg] opacity-0' : 'rotate-x-0 opacity-100'}
                     `}>
-                        {/* Upper Legend */}
-                        <div className="w-full flex justify-center pt-2">
-                             <span className={`text-2xl font-bold tracking-widest ${isFire ? 'text-white drop-shadow-md' : 'text-[#330000]'}`}>ENG 1</span>
-                        </div>
-                        
-                        {/* Lower Legend */}
-                        <div className="w-full flex justify-center pb-2">
-                             <span className={`text-2xl font-bold tracking-widest ${isFire ? 'text-white drop-shadow-md' : 'text-[#330000]'}`}>FIRE</span>
-                        </div>
-
-                        {/* Push Hint */}
-                        <div className={`
-                            absolute bottom-2 text-[8px] font-mono border px-1 rounded-sm
-                            ${isFire ? 'border-white/50 text-white' : 'border-[#330000] text-[#330000]'}
-                        `}>
-                            PUSH
-                        </div>
+                        <div className="absolute top-1/2 -translate-y-1/2 left-1/2 -translate-x-1/2 w-10 h-1 bg-red-400 rounded-full"></div>
                     </div>
+                </div>
+            </div>
 
-                    {/* Glossy Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none"></div>
-                    
-                    {/* Side depth effect when popped out */}
-                    {fireSystem.handlePulled && (
-                        <>
-                            <div className="absolute -right-[2px] top-0 h-full w-[2px] bg-[#0f0f0f] origin-left skew-y-[45deg]"></div>
-                            <div className="absolute -bottom-[2px] left-0 w-full h-[2px] bg-[#0f0f0f] origin-top skew-x-[45deg]"></div>
-                        </>
-                    )}
-                </button>
+            {/* Bottom Group: Agents and Test */}
+            <div className="flex flex-col items-center gap-4">
+                {/* Agent Buttons */}
+                <div className="flex items-center gap-4">
+                     <AgentButton 
+                        label="AGENT 1" 
+                        status={fireSystem.bottle1} 
+                        armed={fireSystem.handlePulled} 
+                        onClick={() => onDischarge('bottle1')} 
+                        isTesting={isTesting}
+                    />
+                    <AgentButton 
+                        label="AGENT 2" 
+                        status={fireSystem.bottle2} 
+                        armed={fireSystem.handlePulled} 
+                        onClick={() => onDischarge('bottle2')} 
+                        isTesting={isTesting}
+                    />
+                </div>
+
+                {/* Test Switch */}
+                <div className="flex flex-col items-center gap-2 mt-2">
+                    <div className={`w-2 h-2 rounded-full border border-black/50 transition-colors ${isTesting ? 'bg-red-500' : 'bg-red-900'}`}></div>
+                    <button 
+                        className="w-4 h-4 rounded-full bg-slate-900 border-2 border-slate-600 active:bg-slate-800 transition-transform active:scale-90"
+                        onMouseDown={handleTestMouseDown}
+                        onMouseUp={handleTestMouseUp}
+                        onMouseLeave={handleTestMouseUp}
+                    ></button>
+                    <span className="text-[10px] font-bold text-slate-400">TEST</span>
+                </div>
             </div>
         </div>
-
-        {/* Agent / Squib Controls */}
-        <div className="w-full px-4">
-            <div className="flex gap-4 justify-center">
-                <SquibButton 
-                    label="AGENT 1" 
-                    status={fireSystem.bottle1} 
-                    armed={fireSystem.handlePulled} 
-                    onClick={() => onDischarge('bottle1')} 
-                />
-                <SquibButton 
-                    label="AGENT 2" 
-                    status={fireSystem.bottle2} 
-                    armed={fireSystem.handlePulled} 
-                    onClick={() => onDischarge('bottle2')} 
-                />
-            </div>
-        </div>
-
-      </div>
     </div>
   );
 };
 
-const LoopIndicator: React.FC<{ label: string, status: string }> = ({ label, status }) => (
-    <div className="flex flex-col items-center gap-1.5">
-        <span className="text-[9px] text-neutral-500 font-mono tracking-wider">{label}</span>
-        <div className={`w-3 h-3 rounded-full border border-black/50 ${status === 'FIRE' ? 'bg-red-500 shadow-[0_0_10px_#ef4444] animate-pulse' : status === 'FAULT' ? 'bg-amber-600' : 'bg-[#0f172a]'}`}></div>
-    </div>
-);
 
-const SquibButton: React.FC<{ label: string, status: string, armed: boolean, onClick: () => void }> = ({ label, status, armed, onClick }) => {
+const AgentButton: React.FC<{ 
+    label: string, 
+    status: string, 
+    armed: boolean, 
+    onClick: () => void,
+    isTesting: boolean 
+}> = ({ label, status, armed, onClick, isTesting }) => {
     const discharged = status === 'DISCHARGED';
     
     return (
         <div className="flex flex-col items-center gap-1">
-            <span className="text-[9px] text-neutral-600 font-mono tracking-wider">{label}</span>
+            <span className="text-[10px] font-bold text-slate-400">{label}</span>
             <button
                 onClick={onClick}
                 disabled={!armed || discharged}
                 className={`
-                    w-20 h-20 bg-[#151515] border-2 border-neutral-800 rounded-sm shadow-inner
-                    flex flex-col items-center justify-between py-3 px-1 transition-all
-                    active:bg-black active:border-neutral-700 active:shadow-none
+                    w-20 h-20 bg-slate-800 border-2 border-black/50 rounded-sm
+                    flex flex-col items-center justify-between p-1 transition-all
+                    shadow-[inset_0_2px_4px_black]
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                    active:bg-slate-900 active:shadow-none
                 `}
             >
-                {/* SQUIB Light (White) - Only visible when ARMED and NOT DISCHARGED */}
-                <div className={`
-                    w-full text-center font-bold tracking-widest text-sm transition-all duration-300
-                    ${armed && !discharged 
-                        ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' 
-                        : 'text-[#333]'}
-                `}>
-                    SQUIB
+                {/* SQUIB Light (White) */}
+                <div className="w-full h-1/2 bg-slate-900/50 rounded-sm flex items-center justify-center">
+                    <span className={`
+                        font-bold tracking-widest text-sm transition-all duration-300
+                        ${(armed && !discharged) || isTesting
+                            ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' 
+                            : 'text-slate-600'}
+                    `}>
+                        SQUIB
+                    </span>
                 </div>
 
-                {/* DISCH Light (Amber) - Only visible when DISCHARGED */}
-                <div className={`
-                    w-full text-center font-bold tracking-widest text-sm transition-all duration-300
-                    ${discharged 
-                        ? 'text-amber-500 drop-shadow-[0_0_5px_rgba(245,158,11,0.8)]' 
-                        : 'text-[#333]'}
-                `}>
-                    DISCH
+                {/* DISCH Light (Amber) */}
+                <div className="w-full h-1/2 bg-slate-900/50 rounded-sm flex items-center justify-center">
+                    <span className={`
+                        font-bold tracking-widest text-sm transition-all duration-300
+                        ${discharged || isTesting
+                            ? 'text-amber-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.8)]' 
+                            : 'text-slate-600'}
+                    `}>
+                        DISCH
+                    </span>
                 </div>
             </button>
         </div>

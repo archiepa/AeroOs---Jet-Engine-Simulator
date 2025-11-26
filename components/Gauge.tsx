@@ -208,12 +208,11 @@ export const CircularGauge: React.FC<GaugeProps> = ({
                     className="absolute top-0 left-0 w-full h-full flex items-center justify-center transition-transform duration-300 ease-out z-20"
                     style={{ transform: `rotate(${rotation}deg)` }}
                 >
-                     {/* Needle SVG */}
-                     <svg width="100%" height="100%" viewBox="0 0 100 100" className="drop-shadow-md">
-                        {/* The needle pointer */}
-                        <polygon points="50,10 46,50 54,50" fill="white" />
-                        {/* Counterweight */}
-                        <rect x="48" y="50" width="4" height="15" fill="#white" />
+                     <svg width="100%" height="100%" viewBox="0 0 100 100" className="drop-shadow-lg">
+                        <g>
+                            <polygon points="50,8 52.5,50 47.5,50" fill="#f8fafc" />
+                            <polygon points="50,50 54,65 46,65" fill="#f8fafc" />
+                        </g>
                      </svg>
                 </div>
 
