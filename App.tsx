@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import { useEngineSimulation } from './hooks/useEngineSimulation';
 import { CircularGauge, GaugeBug } from './components/Gauge';
@@ -198,8 +197,9 @@ const App: React.FC = () => {
                         min={0} max={100} 
                         unit="psi" 
                         size="sm"
-                        warningHigh={90} 
-                        criticalHigh={5} 
+                        criticalLow={10}
+                        warningLow={25}
+                        warningHigh={90}
                     />
                     <CircularGauge 
                         label="Oil Temp" 

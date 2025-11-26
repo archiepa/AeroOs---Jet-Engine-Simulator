@@ -13,6 +13,7 @@ interface GaugeProps {
   max: number;
   unit: string;
   warningLow?: number;
+  criticalLow?: number;
   warningHigh?: number;
   criticalHigh?: number;
   bugs?: GaugeBug[];
@@ -39,7 +40,7 @@ const WarningLight: React.FC<{ className?: string, status: 'normal' | 'warning' 
 };
 
 export const CircularGauge: React.FC<GaugeProps> = ({ 
-  label, value, min, max, unit, warningHigh, criticalHigh, bugs, size = 'md' 
+  label, value, min, max, unit, warningLow, criticalLow, warningHigh, criticalHigh, bugs, size = 'md' 
 }) => {
   // Normalize value to 0-1
   const normalized = Math.min(Math.max((value - min) / (max - min), 0), 1);
@@ -53,7 +54,7 @@ export const CircularGauge: React.FC<GaugeProps> = ({
   const radius = dim / 2 - (size === 'lg' ? 15 : size === 'md' ? 12 : 10);
   
   // Font sizes
-  const valueTextSize = size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-sm';
+  const valueTextSize = size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-[10px]';
   const labelTextSize = size === 'lg' ? 'text-xs' : 'text-[10px]';
 
   // Tick Generation
@@ -124,7 +125,9 @@ export const CircularGauge: React.FC<GaugeProps> = ({
   // Determine Light Status
   let status: 'normal' | 'warning' | 'critical' = 'normal';
   if (criticalHigh && value >= criticalHigh) status = 'critical';
+  else if (criticalLow && value <= criticalLow) status = 'critical';
   else if (warningHigh && value >= warningHigh) status = 'warning';
+  else if (warningLow && value <= warningLow) status = 'warning';
 
   return (
     <div className="flex flex-col items-center">
@@ -144,11 +147,20 @@ export const CircularGauge: React.FC<GaugeProps> = ({
                 
                 <svg className="w-full h-full">
                     {/* Color Bands - Rendered first to be behind ticks */}
-                    {/* Green Range (Default) */}
-                    {renderArc(min, warningHigh || criticalHigh || max, '#10b981')}
-                    {/* Amber Range */}
+                    
+                    {/* Low Critical (Red) */}
+                    {criticalLow && renderArc(min, criticalLow, '#ef4444')}
+                    
+                    {/* Low Warning (Amber) */}
+                    {warningLow && renderArc(criticalLow || min, warningLow, '#f59e0b')}
+
+                    {/* Green Range (Calculated) */}
+                    {renderArc(warningLow || min, warningHigh || criticalHigh || max, '#10b981')}
+                    
+                    {/* High Warning (Amber) */}
                     {warningHigh && renderArc(warningHigh, criticalHigh || max, '#f59e0b')}
-                    {/* Red Range */}
+                    
+                    {/* High Critical (Red) */}
                     {criticalHigh && renderArc(criticalHigh, max, '#ef4444')}
 
                     {/* Ticks */}
