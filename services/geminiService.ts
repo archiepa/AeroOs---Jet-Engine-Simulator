@@ -1,4 +1,5 @@
-import { GoogleGenAI } from "@google/genai";
+
+import { GoogleGenAI, Type } from "@google/genai";
 import { EngineTelemetry, EngineState, SystemAlert } from "../types";
 
 const apiKey = process.env.API_KEY || '';
@@ -35,6 +36,10 @@ export const analyzeEngineStatus = async (
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
+    // FIX: Per @google/genai guidelines, response.text can be undefined and should be checked.
+    if (!response.text) {
+      throw new Error("Received empty text response from Gemini.");
+    }
     return response.text.trim();
   } catch (error) {
     console.error("Gemini analysis failed", error);
@@ -53,18 +58,36 @@ export const getDiagnosticCode = async (errorDescription: string): Promise<Syste
     try {
         const prompt = `
             Generate a short system alert for a jet engine based on this observation: "${errorDescription}".
-            Return only the JSON object with keys: "level" (info/warning/critical) and "message" (uppercase short technical string).
-            Example: {"level": "critical", "message": "EGT EXCURSION DETECTED"}
+            The alert should have a severity level and a short technical message.
         `;
         
+        // FIX: Per @google/genai guidelines, use responseSchema for structured JSON output.
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
-                responseMimeType: "application/json"
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        level: {
+                            type: Type.STRING,
+                            description: "Severity level of the alert, one of 'info', 'warning', or 'critical'."
+                        },
+                        message: {
+                            type: Type.STRING,
+                            description: "A short, uppercase, technical alert message."
+                        }
+                    },
+                    required: ["level", "message"]
+                }
             }
         });
         
+        // FIX: Per @google/genai guidelines, response.text can be undefined and should be checked.
+        if (!response.text) {
+            throw new Error("Received empty JSON response from Gemini.");
+        }
         const data = JSON.parse(response.text);
         return {
             id: Date.now().toString(),
@@ -73,6 +96,7 @@ export const getDiagnosticCode = async (errorDescription: string): Promise<Syste
             timestamp: Date.now()
         };
     } catch (e) {
+        console.error("Gemini diagnostic code generation failed", e);
         return {
             id: Date.now().toString(),
             level: 'info',

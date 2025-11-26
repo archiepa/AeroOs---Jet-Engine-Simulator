@@ -2,7 +2,6 @@
 import React from 'react';
 import { EngineControls, EngineTelemetry } from '../types';
 import { CircularGauge } from './Gauge';
-import { Wind, Fan } from 'lucide-react';
 
 interface BleedPanelProps {
   telemetry: EngineTelemetry;
@@ -10,76 +9,92 @@ interface BleedPanelProps {
   setControls: React.Dispatch<React.SetStateAction<EngineControls>>;
 }
 
+const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
+    <div className={`w-3 h-3 rounded-full bg-slate-800 border border-slate-900 flex items-center justify-center shadow-sm ${className}`}>
+        <div className="w-full h-[1.5px] bg-slate-900 rotate-45"></div>
+        <div className="absolute w-full h-[1.5px] bg-slate-900 -rotate-45"></div>
+    </div>
+);
+
+const GuardedToggleSwitch: React.FC<{
+    label: string,
+    active: boolean,
+    onClick: () => void,
+    onLabel?: string,
+    offLabel?: string
+}> = ({ label, active, onClick, onLabel="ON", offLabel="OFF" }) => {
+    return (
+        <div className="flex flex-col items-center gap-1 font-sans">
+            <div className="w-3 h-3 rounded-full border-2 border-black/50 bg-slate-900 flex items-center justify-center mb-1">
+                <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-amber-400 shadow-[0_0_4px_#fbbf24]' : 'bg-slate-700'}`}></div>
+            </div>
+            <span className="text-[9px] text-slate-400 font-bold">{onLabel}</span>
+            <button onClick={onClick} className="w-8 h-12 relative flex items-center justify-center group">
+                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-red-800 border-2 border-red-900 shadow-[inset_0_1px_2px_black] group-active:bg-red-700"></div>
+                <div className={`
+                    absolute w-2 h-10 bg-gradient-to-b from-slate-200 to-slate-500 rounded-full
+                    border border-slate-600 shadow-md transition-transform duration-200
+                    origin-center group-active:scale-95
+                    ${active ? '-rotate-[30deg]' : 'rotate-[30deg]'}
+                `}></div>
+            </button>
+            <span className="text-[9px] text-slate-400 font-bold mb-1">{offLabel}</span>
+            <span className="text-xs text-slate-300 font-bold tracking-wider">{label}</span>
+        </div>
+    )
+};
+
 export const BleedPanel: React.FC<BleedPanelProps> = ({ telemetry, controls, setControls }) => {
   
-  const togglePack = (pack: 'packL' | 'packR') => {
-      setControls(prev => ({ ...prev, [pack]: !prev[pack] }));
+  const toggleControl = (control: keyof EngineControls) => {
+      setControls(prev => ({ ...prev, [control]: !prev[control] }));
   };
 
   return (
-    <div className="bg-slate-900 border-l border-b border-slate-800 p-4 flex flex-col gap-4">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-1 border-b border-slate-800 pb-2">
-            <Wind className="text-cyan-500" size={18} />
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Pneumatics</h3>
+    <div className="bg-slate-700 border-t-2 border-l-2 border-slate-600 border-b-4 border-r-4 border-black/50 p-4 flex flex-col gap-4 relative font-sans select-none">
+        <ScrewHead className="absolute top-2 left-2" />
+        <ScrewHead className="absolute top-2 right-2" />
+        <ScrewHead className="absolute bottom-2 left-2" />
+        <ScrewHead className="absolute bottom-2 right-2" />
+
+        <h3 className="text-center text-lg font-black text-slate-300 tracking-widest border-b-2 border-slate-600 pb-2">
+            AIR CONDITIONING
+        </h3>
+        
+        <div className="grid grid-cols-3 items-center gap-4 py-4">
+             <GuardedToggleSwitch 
+                label="PACK 1" 
+                active={controls.packL} 
+                onClick={() => toggleControl('packL')} 
+                onLabel="ON" 
+                offLabel="OFF" 
+             />
+             <GuardedToggleSwitch 
+                label="BLEED" 
+                active={controls.bleedAir} 
+                onClick={() => toggleControl('bleedAir')} 
+                onLabel="OPEN" 
+                offLabel="CLSD" 
+             />
+             <GuardedToggleSwitch 
+                label="PACK 2" 
+                active={controls.packR} 
+                onClick={() => toggleControl('packR')} 
+                onLabel="ON" 
+                offLabel="OFF" 
+             />
         </div>
 
-        {/* Status Indicators */}
-        <div className="flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800">
-             <div className="flex flex-col items-center">
-                 <span className="text-[9px] text-slate-500 font-bold mb-1">BLEED VALVE</span>
-                 <div className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${controls.bleedAir ? 'bg-green-500/20 text-green-400 border border-green-500/50' : 'bg-slate-800 text-slate-500'}`}>
-                     {controls.bleedAir ? 'OPEN' : 'CLSD'}
-                 </div>
-             </div>
-             <div className="h-6 w-px bg-slate-800"></div>
-             <div className="flex flex-col items-center">
-                 <span className="text-[9px] text-slate-500 font-bold mb-1">ISOLATION</span>
-                 <div className="text-[10px] font-mono font-bold text-slate-500">AUTO</div>
-             </div>
-        </div>
-
-        {/* Gauge & Pack Switches */}
-        <div className="flex items-center gap-4">
-            
-            {/* Left Pack Switch */}
-            <PackSwitch label="PACK L" active={controls.packL} onClick={() => togglePack('packL')} />
-
-            {/* Center Gauge */}
-            <div className="relative">
-                <CircularGauge 
-                    label="DUCT PRESS" 
-                    value={telemetry.bleedPsi} 
-                    min={0} max={60} 
-                    unit="PSI" 
-                    size="sm"
-                    warningHigh={55}
-                />
-            </div>
-
-            {/* Right Pack Switch */}
-            <PackSwitch label="PACK R" active={controls.packR} onClick={() => togglePack('packR')} />
+        <div className="flex justify-center items-center py-2">
+             <CircularGauge 
+                label="DUCT PRESS" 
+                value={telemetry.bleedPsi} 
+                min={0} max={60} 
+                unit="PSI" 
+                size="md"
+                warningHigh={55}
+             />
         </div>
     </div>
   );
 };
-
-const PackSwitch: React.FC<{ label: string, active: boolean, onClick: () => void }> = ({ label, active, onClick }) => (
-    <div className="flex flex-col items-center gap-2">
-        <button 
-            onClick={onClick}
-            className={`
-                w-12 h-16 rounded border flex flex-col items-center justify-between py-2 transition-all
-                ${active 
-                    ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.2)]' 
-                    : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500'
-                }
-            `}
-        >
-            <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-cyan-400 shadow-[0_0_5px_cyan]' : 'bg-slate-900'}`}></div>
-            <Fan size={16} className={active ? 'animate-spin-slow' : ''} />
-            <div className="w-8 h-1 rounded-full bg-slate-900"></div>
-        </button>
-        <span className="text-[9px] font-bold text-slate-400">{label}</span>
-    </div>
-);
