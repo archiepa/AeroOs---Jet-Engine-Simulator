@@ -1,5 +1,6 @@
 
 
+
 export interface EngineTelemetry {
   n1: number; // Fan speed %
   n2: number; // Core speed %
@@ -60,4 +61,5 @@ export interface FireSystemState {
     handlePulled: boolean;
     bottle1: 'CHARGED' | 'DISCHARGED';
     bottle2: 'CHARGED' | 'DISCHARGED';
+    masterArmed: boolean;
 }

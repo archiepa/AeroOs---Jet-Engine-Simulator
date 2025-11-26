@@ -1,4 +1,6 @@
 
+
+
 import React, { useState } from 'react';
 import { FireSystemState } from '../types';
 
@@ -6,6 +8,7 @@ interface FirePanelProps {
   fireSystem: FireSystemState;
   onPullHandle: () => void;
   onDischarge: (bottle: 'bottle1' | 'bottle2') => void;
+  onToggleMaster: () => void;
 }
 
 const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
@@ -15,7 +18,33 @@ const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
     </div>
 );
 
-export const FirePanel: React.FC<FirePanelProps> = ({ fireSystem, onPullHandle, onDischarge }) => {
+const GuardedToggleSwitch: React.FC<{
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}> = ({ label, active, onClick }) => {
+    return (
+        <div className="flex flex-col items-center gap-2">
+            <div className="relative w-12 h-16" onClick={onClick}>
+                {/* Base */}
+                <div className="w-full h-full bg-slate-800 rounded border-2 border-black/50 shadow-[inset_0_2px_4px_black] cursor-pointer"></div>
+                
+                {/* Switch Lever */}
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 w-4 h-6 bg-slate-400 rounded-sm shadow-md transition-transform duration-200 ease-in-out pointer-events-none ${active ? 'translate-y-[-10px]' : 'translate-y-[6px]'}`}></div>
+                
+                {/* Guard */}
+                <div className={`absolute inset-0 w-full h-full transition-transform duration-300 origin-bottom pointer-events-none ${active ? 'rotate-x-[120deg] opacity-0' : 'rotate-x-0'}`}>
+                    <div className="w-full h-full border-4 border-red-500 bg-red-500/10 rounded-sm flex items-center justify-center">
+                        <div className="w-8 h-1 bg-red-400"></div>
+                    </div>
+                </div>
+            </div>
+            <span className="text-xs font-bold text-slate-400">{label}</span>
+        </div>
+    );
+};
+
+export const FirePanel: React.FC<FirePanelProps> = ({ fireSystem, onPullHandle, onDischarge, onToggleMaster }) => {
   const [isTesting, setIsTesting] = useState(false);
   const isFire = fireSystem.loopA === 'FIRE' || fireSystem.loopB === 'FIRE';
 
@@ -86,18 +115,26 @@ export const FirePanel: React.FC<FirePanelProps> = ({ fireSystem, onPullHandle, 
                      <AgentButton 
                         label="AGENT 1" 
                         status={fireSystem.bottle1} 
-                        armed={fireSystem.handlePulled} 
+                        armed={fireSystem.handlePulled}
+                        masterArmed={fireSystem.masterArmed}
                         onClick={() => onDischarge('bottle1')} 
                         isTesting={isTesting}
                     />
                     <AgentButton 
                         label="AGENT 2" 
                         status={fireSystem.bottle2} 
-                        armed={fireSystem.handlePulled} 
+                        armed={fireSystem.handlePulled}
+                        masterArmed={fireSystem.masterArmed}
                         onClick={() => onDischarge('bottle2')} 
                         isTesting={isTesting}
                     />
                 </div>
+                
+                <GuardedToggleSwitch
+                    label="FIRE PROT"
+                    active={fireSystem.masterArmed}
+                    onClick={onToggleMaster}
+                />
 
                 {/* Test Switch */}
                 <div className="flex flex-col items-center gap-2 mt-2">
@@ -120,10 +157,11 @@ export const FirePanel: React.FC<FirePanelProps> = ({ fireSystem, onPullHandle, 
 const AgentButton: React.FC<{ 
     label: string, 
     status: string, 
-    armed: boolean, 
+    armed: boolean,
+    masterArmed: boolean,
     onClick: () => void,
     isTesting: boolean 
-}> = ({ label, status, armed, onClick, isTesting }) => {
+}> = ({ label, status, armed, masterArmed, onClick, isTesting }) => {
     const discharged = status === 'DISCHARGED';
     
     return (
@@ -131,7 +169,7 @@ const AgentButton: React.FC<{
             <span className="text-[10px] font-bold text-slate-400">{label}</span>
             <button
                 onClick={onClick}
-                disabled={!armed || discharged}
+                disabled={!armed || discharged || !masterArmed}
                 className={`
                     w-20 h-20 bg-slate-800 border-2 border-black/50 rounded-sm
                     flex flex-col items-center justify-between p-1 transition-all
@@ -144,7 +182,7 @@ const AgentButton: React.FC<{
                 <div className="w-full h-1/2 bg-slate-900/50 rounded-sm flex items-center justify-center">
                     <span className={`
                         font-bold tracking-widest text-sm transition-all duration-300
-                        ${(armed && !discharged) || isTesting
+                        ${(armed && !discharged && masterArmed) || isTesting
                             ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' 
                             : 'text-slate-600'}
                     `}>

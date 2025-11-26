@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useEffect } from 'react';
 import { useEngineSimulation } from './hooks/useEngineSimulation';
 import { CircularGauge, GaugeBug } from './components/Gauge';
@@ -55,7 +57,8 @@ const App: React.FC = () => {
       updateFailureConfig,
       fireSystem,
       dischargeBottle,
-      toggleFireHandle
+      toggleFireHandle,
+      toggleFireMaster
   } = useEngineSimulation();
   
   const [history, setHistory] = useState<EngineTelemetry[]>([]);
@@ -249,6 +252,7 @@ const App: React.FC = () => {
                 fireSystem={fireSystem} 
                 onPullHandle={toggleFireHandle}
                 onDischarge={dischargeBottle}
+                onToggleMaster={toggleFireMaster}
             />
         </div>
 

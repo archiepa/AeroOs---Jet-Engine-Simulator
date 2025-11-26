@@ -1,5 +1,4 @@
 
-
 import { useState, useEffect, useRef } from 'react';
 import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig } from '../types';
 
@@ -41,7 +40,8 @@ export const useEngineSimulation = () => {
     loopB: 'NORMAL',
     handlePulled: false,
     bottle1: 'CHARGED',
-    bottle2: 'CHARGED'
+    bottle2: 'CHARGED',
+    masterArmed: true,
   });
 
   const [telemetry, setTelemetry] = useState<EngineTelemetry>({
@@ -118,7 +118,7 @@ export const useEngineSimulation = () => {
   // Handle Fire Suppression Actions
   const dischargeBottle = (bottle: 'bottle1' | 'bottle2') => {
       setFireSystem(prev => {
-          if (prev[bottle] === 'DISCHARGED') return prev;
+          if (prev[bottle] === 'DISCHARGED' || !prev.handlePulled || !prev.masterArmed) return prev;
           
           // Extinguish fire probability
           if (failures.engineFire) {
@@ -136,6 +136,10 @@ export const useEngineSimulation = () => {
 
   const toggleFireHandle = () => {
       setFireSystem(prev => ({ ...prev, handlePulled: !prev.handlePulled }));
+  };
+
+  const toggleFireMaster = () => {
+      setFireSystem(prev => ({ ...prev, masterArmed: !prev.masterArmed }));
   };
 
   useEffect(() => {
@@ -190,87 +194,89 @@ export const useEngineSimulation = () => {
       }
 
       // --- State Machine ---
-      switch (state) {
-        case EngineState.OFF:
-          // Starter can drive N2 up to 25% (Max Motoring)
-          if (starterActive) {
-            targetN2 = 25;
-            // Light-off criteria: >15% N2, Fuel, Ignition
-            if (fuelFlowing && ignitionActive && ps.n2 > 15) {
-              setState(EngineState.STARTING);
-            }
-          } else {
-            targetN2 = 0;
-          }
-          break;
-
-        case EngineState.STARTING:
-          // Engine accelerating to IDLE
-          targetN2 = 58; // Self-sustaining target
-          
-          // Starter assist helps it get there faster
-          if (starterActive) targetN2 = 60;
-
-          // If fuel is cut during start, abort
-          if (!fuelFlowing) {
-             setState(EngineState.SHUTDOWN);
-          } else if (ps.n2 > 55) {
-             // Stable idle
-             setState(EngineState.IDLE);
-          }
-          break;
-
-        case EngineState.IDLE:
-        case EngineState.RUNNING:
-          if (!fuelFlowing) {
-            setState(EngineState.SHUTDOWN);
-          } else {
-            // Idle ~60%, Max ~100%
-            // Map throttle 0-100 to N2 60-100
-            const throttleTarget = 60 + (controls.throttle / 100) * 40;
-            targetN2 = Math.max(60, throttleTarget);
-            
-            // Check if a fire has started, or adjust between idle/running
-            if (failures.engineFire) {
-                setState(EngineState.FIRE);
-            } else if (controls.throttle > 5) {
-                setState(EngineState.RUNNING);
+      // FIX: Handle SEIZED state outside the switch to prevent incorrect type narrowing by TypeScript,
+      // which was causing a compilation error in the EGT calculation logic below.
+      if (state === EngineState.SEIZED) {
+        targetN2 = 0;
+        // Engine is destroyed. Cannot restart.
+      } else {
+        switch (state) {
+          case EngineState.OFF:
+            // Starter can drive N2 up to 25% (Max Motoring)
+            if (starterActive) {
+              targetN2 = 25;
+              // Light-off criteria: >15% N2, Fuel, Ignition
+              if (fuelFlowing && ignitionActive && ps.n2 > 15) {
+                setState(EngineState.STARTING);
+              }
             } else {
-                setState(EngineState.IDLE);
+              targetN2 = 0;
             }
-          }
-          break;
+            break;
 
-        case EngineState.FIRE:
-          if (!fuelFlowing) {
-            setState(EngineState.SHUTDOWN);
-          } else {
-            // Engine continues to operate based on throttle while on fire
-            const throttleTarget = 60 + (controls.throttle / 100) * 40;
-            targetN2 = Math.max(60, throttleTarget);
+          case EngineState.STARTING:
+            // Engine accelerating to IDLE
+            targetN2 = 58; // Self-sustaining target
             
-            // Check if fire is extinguished, and transition back to a normal running state
-            if (!failures.engineFire) {
-                setState(controls.throttle > 5 ? EngineState.RUNNING : EngineState.IDLE);
-            }
-          }
-          break;
+            // Starter assist helps it get there faster
+            if (starterActive) targetN2 = 60;
 
-        case EngineState.SHUTDOWN:
-          targetN2 = 0;
-          if (starterActive) targetN2 = 25; // Can still crank
-          if (ps.n2 < 2 && !starterActive) setState(EngineState.OFF);
-          
-          // Relight logic (Hot start possibility if fuel reintroduced quickly)
-          if (fuelFlowing && ignitionActive && ps.n2 > 15) {
-             setState(EngineState.STARTING);
-          }
-          break;
-        
-        case EngineState.SEIZED:
-          targetN2 = 0;
-          // Engine is destroyed. Cannot restart.
-          break;
+            // If fuel is cut during start, abort
+            if (!fuelFlowing) {
+               setState(EngineState.SHUTDOWN);
+            } else if (ps.n2 > 55) {
+               // Stable idle
+               setState(EngineState.IDLE);
+            }
+            break;
+
+          case EngineState.IDLE:
+          case EngineState.RUNNING:
+            if (!fuelFlowing) {
+              setState(EngineState.SHUTDOWN);
+            } else {
+              // Idle ~60%, Max ~100%
+              // Map throttle 0-100 to N2 60-100
+              const throttleTarget = 60 + (controls.throttle / 100) * 40;
+              targetN2 = Math.max(60, throttleTarget);
+              
+              // Check if a fire has started, or adjust between idle/running
+              if (failures.engineFire) {
+                  setState(EngineState.FIRE);
+              } else if (controls.throttle > 5) {
+                  setState(EngineState.RUNNING);
+              } else {
+                  setState(EngineState.IDLE);
+              }
+            }
+            break;
+
+          case EngineState.FIRE:
+            if (!fuelFlowing) {
+              setState(EngineState.SHUTDOWN);
+            } else {
+              // Engine continues to operate based on throttle while on fire
+              const throttleTarget = 60 + (controls.throttle / 100) * 40;
+              targetN2 = Math.max(60, throttleTarget);
+              
+              // Check if fire is extinguished, and transition back to a normal running state
+              if (!failures.engineFire) {
+                  setState(controls.throttle > 5 ? EngineState.RUNNING : EngineState.IDLE);
+              }
+            }
+            break;
+
+          case EngineState.SHUTDOWN:
+            targetN2 = 0;
+            if (starterActive) targetN2 = 25; // Can still crank
+            if (ps.n2 < 2 && !starterActive) setState(EngineState.OFF);
+            
+            // Relight logic (Hot start possibility if fuel reintroduced quickly)
+            if (fuelFlowing && ignitionActive && ps.n2 > 15) {
+               setState(EngineState.STARTING);
+            }
+            break;
+        }
       }
 
       // --- Physics Integration ---
@@ -411,6 +417,7 @@ export const useEngineSimulation = () => {
       updateFailureConfig,
       fireSystem,
       dischargeBottle,
-      toggleFireHandle
+      toggleFireHandle,
+      toggleFireMaster
   };
 };
