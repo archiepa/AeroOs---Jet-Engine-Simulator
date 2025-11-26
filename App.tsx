@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { useEngineSimulation } from './hooks/useEngineSimulation';
 import { CircularGauge, GaugeBug } from './components/Gauge';
@@ -7,9 +8,9 @@ import { TelemetryChart, ChartSeries, ChartAxis } from './components/TelemetryCh
 import { FirePanel } from './components/FirePanel';
 import { FailuresMenu } from './components/FailuresMenu';
 import { EngineSchematic } from './components/EngineSchematic';
-import { analyzeEngineStatus } from './services/geminiService';
+import { BleedPanel } from './components/BleedPanel';
 import { EngineTelemetry } from './types';
-import { Activity, Radio, Cpu, ShieldCheck, AlertOctagon } from 'lucide-react';
+import { Activity, Cpu, AlertOctagon } from 'lucide-react';
 
 const MAX_HISTORY = 100;
 
@@ -59,8 +60,6 @@ const App: React.FC = () => {
   } = useEngineSimulation();
   
   const [history, setHistory] = useState<EngineTelemetry[]>([]);
-  const [aiStatus, setAiStatus] = useState<string>("SYSTEM INITIALIZED. STANDBY FOR TELEMETRY.");
-  const [isAiThinking, setIsAiThinking] = useState(false);
   const [showFailures, setShowFailures] = useState(false);
 
   // Update history buffer
@@ -71,28 +70,6 @@ const App: React.FC = () => {
       return newHistory;
     });
   }, [telemetry]);
-
-  // AI Analysis Interval
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      // Add guard against overlapping requests and inactive states.
-      if (isAiThinking || ((state === 'OFF' || state === 'SEIZED') && !failures.engineFire)) return;
-      
-      setIsAiThinking(true);
-      try {
-        const report = await analyzeEngineStatus(telemetry, state, controls);
-        setAiStatus(report);
-      } catch (error) {
-          console.error("AI analysis request failed:", error);
-          setAiStatus("EMS AI LINK INTERRUPTED.");
-      } finally {
-        setIsAiThinking(false);
-      }
-
-    }, 15000); // Increased interval to 15 seconds to avoid API rate limits.
-
-    return () => clearInterval(interval);
-  }, [state, controls, failures, telemetry, isAiThinking]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans selection:bg-cyan-500/30">
@@ -132,11 +109,6 @@ const App: React.FC = () => {
                 }`}>
                     {state}
                 </span>
-            </div>
-            <div className="h-8 w-px bg-slate-800"></div>
-            <div className="flex items-center gap-2">
-                <Radio className={`${isAiThinking ? 'animate-pulse text-cyan-400' : 'text-slate-600'}`} size={18} />
-                <span className="text-xs font-mono text-slate-400">AI LINK {isAiThinking ? 'ACTIVE' : 'IDLE'}</span>
             </div>
         </div>
 
@@ -262,24 +234,16 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Right: AI Copilot & Fire System */}
+        {/* Right: Systems (Pneumatics & Fire) */}
         <div className="w-80 bg-slate-900 border-l border-slate-800 flex flex-col shrink-0">
-            {/* AI Status Panel */}
-            <div className="p-4 border-b border-slate-800 bg-slate-800/30">
-                <div className="flex items-center gap-2 mb-3">
-                    <ShieldCheck className="text-cyan-400" size={16} />
-                    <span className="text-xs font-bold text-cyan-400 uppercase tracking-wider">EMS AI Diagnostic</span>
-                </div>
-                <div className="bg-slate-950 rounded p-3 border border-slate-700 font-mono text-xs leading-relaxed text-slate-300 shadow-inner min-h-[100px]">
-                    {isAiThinking ? (
-                        <span className="animate-pulse text-cyan-500">Processing telemetry stream...</span>
-                    ) : (
-                        aiStatus
-                    )}
-                </div>
-            </div>
+            {/* Bleed Air & Packs Panel */}
+            <BleedPanel 
+                telemetry={telemetry}
+                controls={controls}
+                setControls={setControls}
+            />
 
-            {/* Fire Management System (Replaces Event Log) */}
+            {/* Fire Management System */}
             <FirePanel 
                 fireSystem={fireSystem} 
                 onPullHandle={toggleFireHandle}

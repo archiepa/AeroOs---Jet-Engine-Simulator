@@ -22,6 +22,8 @@ export const useEngineSimulation = () => {
     starter: false,
     throttle: 0,
     bleedAir: true,
+    packL: false,
+    packR: false,
   });
 
   const [failures, setFailures] = useState<FailureState>({
@@ -32,7 +34,6 @@ export const useEngineSimulation = () => {
   });
 
   const [failureConfigs, setFailureConfigs] = useState<FailureConfig[]>(DEFAULT_FAILURES);
-  // Replaced NodeJS.Timeout with ReturnType<typeof setTimeout> to support environments without Node types
   const pendingTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const [fireSystem, setFireSystem] = useState<FireSystemState>({
@@ -51,6 +52,7 @@ export const useEngineSimulation = () => {
     oilP: 0,
     oilT: 20,
     vib: 0,
+    bleedPsi: 0,
     timestamp: Date.now(),
   });
 
@@ -60,6 +62,7 @@ export const useEngineSimulation = () => {
     n2: 0,
     egt: 20,
     oilT: 20,
+    bleedPsi: 0,
     oilFailureTimer: 0,
     fireDuration: 0
   });
@@ -110,7 +113,7 @@ export const useEngineSimulation = () => {
 
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [failureConfigs, failures]); // Dependencies ensure we have latest state if needed, though toggleFailure uses function updates
+  }, [failureConfigs, failures]);
 
   // Handle Fire Suppression Actions
   const dischargeBottle = (bottle: 'bottle1' | 'bottle2') => {
@@ -217,8 +220,6 @@ export const useEngineSimulation = () => {
           }
           break;
 
-        // FIX: Separated the FIRE state case from IDLE/RUNNING to resolve a TypeScript control flow analysis issue.
-        // The logic remains equivalent, but this structure avoids the bug and improves clarity.
         case EngineState.IDLE:
         case EngineState.RUNNING:
           if (!fuelFlowing) {
@@ -356,7 +357,6 @@ export const useEngineSimulation = () => {
       ps.oilT += (targetOilT - ps.oilT) * 0.005; // Very slow thermal mass
 
       // Vibration
-      // Vibration peaks at specific resonance frequencies usually, here linear + noise
       let baseVib = (ps.n1 / 100) * 0.8;
       let vibNoise = Math.random() * 0.1;
       // High vibration if starting cold
@@ -371,8 +371,25 @@ export const useEngineSimulation = () => {
           baseVib = 0;
           vibNoise = 0;
       }
-
       const vib = baseVib + vibNoise;
+
+      // --- Pneumatics (Bleed Air) ---
+      let targetBleedPsi = 0;
+      if (ps.n2 > 20 && controls.bleedAir && state !== EngineState.SEIZED) {
+          // Base pressure generation from N2 compressor
+          // 20% N2 = 0 psi, 60% N2 = 30 psi, 100% N2 = 50 psi
+          targetBleedPsi = (ps.n2 - 20) * 0.6; 
+          
+          // Pack Loads (Packs consume air, lowering manifold pressure slightly)
+          if (controls.packL) targetBleedPsi -= 4;
+          if (controls.packR) targetBleedPsi -= 4;
+      }
+      
+      // Clamp pressure
+      targetBleedPsi = Math.max(0, targetBleedPsi);
+
+      // Pressure lag
+      ps.bleedPsi += (targetBleedPsi - ps.bleedPsi) * 0.2;
 
       // Update React State
       setTelemetry({
@@ -383,6 +400,7 @@ export const useEngineSimulation = () => {
         oilP: Math.max(0, oilP),
         oilT: ps.oilT,
         vib: Math.max(0, vib),
+        bleedPsi: Math.max(0, ps.bleedPsi),
         timestamp: Date.now(),
       });
 

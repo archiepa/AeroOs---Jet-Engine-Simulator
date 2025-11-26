@@ -1,4 +1,5 @@
 
+
 export interface EngineTelemetry {
   n1: number; // Fan speed %
   n2: number; // Core speed %
@@ -7,6 +8,7 @@ export interface EngineTelemetry {
   oilP: number; // Oil Pressure (psi)
   oilT: number; // Oil Temperature (C)
   vib: number; // Vibration (ips)
+  bleedPsi: number; // Bleed Air Pressure (psi)
   timestamp: number;
 }
 
@@ -26,7 +28,9 @@ export interface EngineControls {
   ignition: boolean;
   starter: boolean;
   throttle: number; // 0-100
-  bleedAir: boolean;
+  bleedAir: boolean; // Master Bleed Valve
+  packL: boolean;
+  packR: boolean;
 }
 
 export interface SystemAlert {
