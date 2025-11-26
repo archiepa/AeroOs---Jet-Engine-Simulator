@@ -1,16 +1,17 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { EngineTelemetry, EngineState, SystemAlert } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-const ai = new GoogleGenAI({ apiKey });
+// FIX: Per @google/genai guidelines, initialize with process.env.API_KEY directly.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const analyzeEngineStatus = async (
   telemetry: EngineTelemetry,
   state: EngineState,
   controls: any
 ): Promise<string> => {
-  if (!apiKey) return "AI DIAGNOSTICS OFFLINE: NO API KEY";
+  // FIX: Per @google/genai guidelines, assume API_KEY is present and remove the check.
 
   const prompt = `
     Role: You are the Engine Management System (EMS) AI for a high-bypass turbofan jet engine.
@@ -48,12 +49,7 @@ export const analyzeEngineStatus = async (
 };
 
 export const getDiagnosticCode = async (errorDescription: string): Promise<SystemAlert> => {
-    if (!apiKey) return {
-        id: Date.now().toString(),
-        level: 'warning',
-        message: 'AI DIAGNOSTICS UNAVAILABLE',
-        timestamp: Date.now()
-    };
+    // FIX: Per @google/genai guidelines, assume API_KEY is present and remove the check.
 
     try {
         const prompt = `

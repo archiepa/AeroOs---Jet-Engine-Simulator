@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useRef } from 'react';
 import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig } from '../types';
 
@@ -41,7 +42,7 @@ export const useEngineSimulation = () => {
     handlePulled: false,
     bottle1: 'CHARGED',
     bottle2: 'CHARGED',
-    masterArmed: true,
+    masterArmed: false,
   });
 
   const [telemetry, setTelemetry] = useState<EngineTelemetry>({
