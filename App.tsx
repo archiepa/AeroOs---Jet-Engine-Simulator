@@ -75,17 +75,24 @@ const App: React.FC = () => {
   // AI Analysis Interval
   useEffect(() => {
     const interval = setInterval(async () => {
-      if ((state === 'OFF' || state === 'SEIZED') && !failures.engineFire) return;
+      // Add guard against overlapping requests and inactive states.
+      if (isAiThinking || ((state === 'OFF' || state === 'SEIZED') && !failures.engineFire)) return;
       
       setIsAiThinking(true);
-      const report = await analyzeEngineStatus(telemetry, state, controls);
-      setAiStatus(report);
-      setIsAiThinking(false);
+      try {
+        const report = await analyzeEngineStatus(telemetry, state, controls);
+        setAiStatus(report);
+      } catch (error) {
+          console.error("AI analysis request failed:", error);
+          setAiStatus("EMS AI LINK INTERRUPTED.");
+      } finally {
+        setIsAiThinking(false);
+      }
 
-    }, 8000); // Check every 8 seconds to not spam API
+    }, 15000); // Increased interval to 15 seconds to avoid API rate limits.
 
     return () => clearInterval(interval);
-  }, [state, controls, failures]); 
+  }, [state, controls, failures, telemetry, isAiThinking]);
 
   return (
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans selection:bg-cyan-500/30">

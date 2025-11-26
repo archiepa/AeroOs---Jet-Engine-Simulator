@@ -1,4 +1,5 @@
 
+
 import { useState, useEffect, useRef } from 'react';
 import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig } from '../types';
 
@@ -148,7 +149,8 @@ export const useEngineSimulation = () => {
       const ps = physicsState.current;
       let targetN2 = 0;
       
-      const powerAvailable = controls.masterSwitch;
+      // A seized engine cannot provide power, regardless of master switch position.
+      const powerAvailable = controls.masterSwitch && state !== EngineState.SEIZED;
       // Fire Handle cuts fuel physically
       const fuelFlowing = controls.fuelPump && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
       const ignitionActive = controls.ignition && powerAvailable;
@@ -215,9 +217,10 @@ export const useEngineSimulation = () => {
           }
           break;
 
+        // FIX: Separated the FIRE state case from IDLE/RUNNING to resolve a TypeScript control flow analysis issue.
+        // The logic remains equivalent, but this structure avoids the bug and improves clarity.
         case EngineState.IDLE:
         case EngineState.RUNNING:
-        case EngineState.FIRE:
           if (!fuelFlowing) {
             setState(EngineState.SHUTDOWN);
           } else {
@@ -226,13 +229,28 @@ export const useEngineSimulation = () => {
             const throttleTarget = 60 + (controls.throttle / 100) * 40;
             targetN2 = Math.max(60, throttleTarget);
             
-            // Check if specifically fire state needs to persist or if it's just a running state with fire
+            // Check if a fire has started, or adjust between idle/running
             if (failures.engineFire) {
                 setState(EngineState.FIRE);
             } else if (controls.throttle > 5) {
                 setState(EngineState.RUNNING);
             } else {
                 setState(EngineState.IDLE);
+            }
+          }
+          break;
+
+        case EngineState.FIRE:
+          if (!fuelFlowing) {
+            setState(EngineState.SHUTDOWN);
+          } else {
+            // Engine continues to operate based on throttle while on fire
+            const throttleTarget = 60 + (controls.throttle / 100) * 40;
+            targetN2 = Math.max(60, throttleTarget);
+            
+            // Check if fire is extinguished, and transition back to a normal running state
+            if (!failures.engineFire) {
+                setState(controls.throttle > 5 ? EngineState.RUNNING : EngineState.IDLE);
             }
           }
           break;
