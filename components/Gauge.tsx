@@ -26,6 +26,18 @@ const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
     </div>
 );
 
+const WarningLight: React.FC<{ className?: string, status: 'normal' | 'warning' | 'critical', size?: 'sm' | 'md' }> = ({ className, status, size = 'md' }) => {
+    let colorClass = 'bg-zinc-900 border-zinc-700'; // off
+    if (status === 'warning') colorClass = 'bg-amber-500 border-amber-600 shadow-[0_0_8px_rgba(245,158,11,1)] animate-pulse';
+    if (status === 'critical') colorClass = 'bg-red-500 border-red-600 shadow-[0_0_8px_rgba(239,68,68,1)] animate-pulse';
+    
+    const sizeClass = size === 'sm' ? 'w-1.5 h-1.5' : 'w-2.5 h-2.5';
+    
+    return (
+        <div className={`rounded-full border ${sizeClass} ${colorClass} ${className}`}></div>
+    );
+};
+
 export const CircularGauge: React.FC<GaugeProps> = ({ 
   label, value, min, max, unit, warningHigh, criticalHigh, bugs, size = 'md' 
 }) => {
@@ -35,8 +47,10 @@ export const CircularGauge: React.FC<GaugeProps> = ({
 
   // Size Configuration
   const dim = size === 'lg' ? 180 : size === 'md' ? 140 : 100;
+  // Calculate center based on the inner container size (dim - 10)
+  const faceSize = dim - 10;
+  const center = faceSize / 2;
   const radius = dim / 2 - (size === 'lg' ? 15 : size === 'md' ? 12 : 10);
-  const center = dim / 2;
   
   // Font sizes
   const valueTextSize = size === 'lg' ? 'text-2xl' : size === 'md' ? 'text-lg' : 'text-sm';
@@ -77,9 +91,11 @@ export const CircularGauge: React.FC<GaugeProps> = ({
 
   // Color Zones (Arcs)
   const renderArc = (startVal: number, endVal: number, color: string) => {
-      const startPct = (startVal - min) / (max - min);
-      const endPct = (endVal - min) / (max - min);
+      const startPct = Math.max(0, Math.min(1, (startVal - min) / (max - min)));
+      const endPct = Math.max(0, Math.min(1, (endVal - min) / (max - min)));
       
+      if (startPct >= endPct) return null;
+
       // Convert to SVG Arc definition
       // 270 degrees total range. Start is -135.
       const startAngle = (startPct * 270 - 135 - 90) * (Math.PI / 180); // -90 adjustment for SVG coords
@@ -105,6 +121,11 @@ export const CircularGauge: React.FC<GaugeProps> = ({
       );
   };
 
+  // Determine Light Status
+  let status: 'normal' | 'warning' | 'critical' = 'normal';
+  if (criticalHigh && value >= criticalHigh) status = 'critical';
+  else if (warningHigh && value >= warningHigh) status = 'warning';
+
   return (
     <div className="flex flex-col items-center">
         {/* Retro Housing */}
@@ -112,22 +133,26 @@ export const CircularGauge: React.FC<GaugeProps> = ({
             className="relative bg-zinc-800 rounded-lg shadow-[0_4px_6px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.1)] border-t border-l border-zinc-700 border-b-4 border-r-4 border-b-black border-r-black flex items-center justify-center"
             style={{ width: dim, height: dim }}
         >
-            {/* Screws */}
+            {/* Screws & Light */}
             <ScrewHead className="absolute top-1 left-1" />
-            <ScrewHead className="absolute top-1 right-1" />
+            <WarningLight className="absolute top-1 right-1" status={status} />
             <ScrewHead className="absolute bottom-1 left-1" />
             <ScrewHead className="absolute bottom-1 right-1" />
 
             {/* Gauge Face (Inset) */}
-            <div className="rounded-full bg-black shadow-[inset_0_4px_10px_rgba(0,0,0,1)] border-2 border-zinc-700 relative overflow-hidden" style={{ width: dim - 10, height: dim - 10 }}>
+            <div className="rounded-full bg-black shadow-[inset_0_4px_10px_rgba(0,0,0,1)] border-2 border-zinc-700 relative overflow-hidden" style={{ width: faceSize, height: faceSize }}>
                 
                 <svg className="w-full h-full">
+                    {/* Color Bands - Rendered first to be behind ticks */}
+                    {/* Green Range (Default) */}
+                    {renderArc(min, warningHigh || criticalHigh || max, '#10b981')}
+                    {/* Amber Range */}
+                    {warningHigh && renderArc(warningHigh, criticalHigh || max, '#f59e0b')}
+                    {/* Red Range */}
+                    {criticalHigh && renderArc(criticalHigh, max, '#ef4444')}
+
                     {/* Ticks */}
                     {renderTicks()}
-
-                    {/* Color Bands */}
-                    {warningHigh && renderArc(warningHigh, criticalHigh || max, '#f59e0b')}
-                    {criticalHigh && renderArc(criticalHigh, max, '#ef4444')}
                 </svg>
 
                 {/* Bugs */}
@@ -197,15 +222,23 @@ export const BarGauge: React.FC<GaugeProps> = ({
     const range = max - min;
     const percent = Math.min(Math.max(((value - min) / range) * 100, 0), 100);
     
-    // Retro colors
-    let barColor = 'bg-white';
-    if (criticalHigh && value >= criticalHigh) barColor = 'bg-red-500';
-    else if (warningHigh && value >= warningHigh) barColor = 'bg-amber-500';
+    // Retro colors - Default to green for normal range
+    let barColor = 'bg-emerald-500';
+    let status: 'normal' | 'warning' | 'critical' = 'normal';
+
+    if (criticalHigh && value >= criticalHigh) {
+        barColor = 'bg-red-500';
+        status = 'critical';
+    }
+    else if (warningHigh && value >= warningHigh) {
+        barColor = 'bg-amber-500';
+        status = 'warning';
+    }
 
     return (
         <div className="relative bg-zinc-800 p-2 rounded border-t border-l border-zinc-700 border-b-4 border-r-4 border-black">
              <ScrewHead className="absolute top-1 left-1 w-1.5 h-1.5" />
-             <ScrewHead className="absolute top-1 right-1 w-1.5 h-1.5" />
+             <WarningLight className="absolute top-1 right-1" status={status} size="sm" />
              <ScrewHead className="absolute bottom-1 left-1 w-1.5 h-1.5" />
              <ScrewHead className="absolute bottom-1 right-1 w-1.5 h-1.5" />
 
