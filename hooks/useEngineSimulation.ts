@@ -301,40 +301,31 @@ export const useEngineSimulation = () => {
       ps.n1 += (limitedN1 - ps.n1) * 0.08;
 
       // EGT (Exhaust Gas Temp)
-      let targetEgt = 20; // Ambient
-      
-      // FIX: Swapped order of conditions to potentially resolve a TypeScript type inference issue
-      // where the compiler incorrectly flags a type overlap error.
-      if (fuelFlowing && state !== EngineState.OFF) {
-          // Base operating temp
-          targetEgt = 400 + (ps.n2 - 60) * 12;
-          
-          // Start spike
-          if (state === EngineState.STARTING) {
-             // Peak EGT during start before airflow stabilizes
-             if (ps.n2 < 40) targetEgt = 750;
-             else targetEgt = 550;
-          }
-          
-          // Overspeed / Over-fueling heat
-          if (controls.throttle > 95) targetEgt += 50;
-      }
-
-      // FIRE LOGIC
-      if (failures.engineFire) {
-          targetEgt = 1250 + (Math.random() * 50); // Massive uncontrollable fire
-      }
-      
-      // Cooling factor
-      if (!fuelFlowing && !failures.engineFire) {
-         targetEgt = 20 + (ps.n2 * 2); // Friction heat/residual
-      }
-
-      // Seized engine stays hot for a bit but no combustion
+      // FIX: Restructured EGT logic to resolve a TypeScript type inference issue by nesting conditional checks. This helps the compiler better understand the control flow for the `state` variable.
+      let targetEgt: number;
       if (state === EngineState.SEIZED) {
-          targetEgt = failures.engineFire ? 1200 : 200; 
-      }
+        targetEgt = failures.engineFire ? 1200 : 200;
+      } else {
+        if (failures.engineFire) {
+          targetEgt = 1250 + (Math.random() * 50); // Massive uncontrollable fire
+        } else if (fuelFlowing && state !== EngineState.OFF) {
+          if (state === EngineState.STARTING) {
+            // Peak EGT during start before airflow stabilizes
+            targetEgt = ps.n2 < 40 ? 750 : 550;
+          } else {
+            // Base operating temp
+            targetEgt = 400 + (ps.n2 - 60) * 12;
+          }
 
+          // Overspeed / Over-fueling heat
+          if (controls.throttle > 95) {
+            targetEgt += 50;
+          }
+        } else {
+          // Not seized, not on fire, and not running with fuel -> cooling or ambient
+          targetEgt = 20 + (ps.n2 * 2); // Friction heat/residual
+        }
+      }
       ps.egt += (targetEgt - ps.egt) * 0.04;
 
       // Fuel Flow

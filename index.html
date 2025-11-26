@@ -31,6 +31,21 @@
       ::-webkit-scrollbar-thumb:hover {
         background: #64748b;
       }
+      /* Extinguisher Animation */
+      @keyframes extinguish-puff {
+        0% {
+          transform: translateX(0) scale(0.2);
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(150px) scale(2.5);
+          opacity: 0;
+        }
+      }
+      .extinguisher-cloud {
+        animation: extinguish-puff 2s ease-out forwards;
+        transform-origin: center;
+      }
     </style>
   <script type="importmap">
 {

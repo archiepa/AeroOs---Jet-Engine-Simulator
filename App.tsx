@@ -230,6 +230,7 @@ const App: React.FC = () => {
                     egt={telemetry.egt}
                     state={state}
                     failures={failures}
+                    fireSystem={fireSystem}
                  />
             </div>
         </div>

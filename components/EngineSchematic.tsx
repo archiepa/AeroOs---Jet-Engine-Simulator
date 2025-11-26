@@ -1,6 +1,5 @@
-
-import React from 'react';
-import { EngineState, FailureState } from '../types';
+import React, { useState, useEffect, useRef } from 'react';
+import { EngineState, FailureState, FireSystemState } from '../types';
 
 interface EngineSchematicProps {
   n1: number;
@@ -8,9 +7,25 @@ interface EngineSchematicProps {
   egt: number;
   state: EngineState;
   failures: FailureState;
+  fireSystem: FireSystemState;
 }
 
-export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, state, failures }) => {
+export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, state, failures, fireSystem }) => {
+  const [animationKey, setAnimationKey] = useState<number | null>(null);
+  const prevFireSystem = useRef<FireSystemState>(fireSystem);
+
+  useEffect(() => {
+    const bottle1Discharged = fireSystem.bottle1 === 'DISCHARGED' && prevFireSystem.current.bottle1 === 'CHARGED';
+    const bottle2Discharged = fireSystem.bottle2 === 'DISCHARGED' && prevFireSystem.current.bottle2 === 'CHARGED';
+
+    if (bottle1Discharged || bottle2Discharged) {
+        // Set a new, unique key to force the animation component to re-mount and replay
+        setAnimationKey(Date.now());
+    }
+
+    prevFireSystem.current = fireSystem;
+  }, [fireSystem]);
+
   // Component Status Logic
   const getStatus = (val: number, warn: number, crit: number, isFire: boolean = false) => {
       if (isFire) return { label: 'FIRE', color: 'text-red-500 animate-pulse', dot: 'bg-red-500' };
@@ -84,6 +99,14 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
 
               {/* Core Flow Path */}
               <path d="M 150,80 L 650,100 L 650,200 L 150,220 Z" fill="#1e293b" opacity="0.5" />
+
+              {/* Extinguisher Nozzles */}
+              <g fill="#64748b" stroke="#334155">
+                <circle cx="300" cy="108" r="3" />
+                <circle cx="500" cy="110" r="3" />
+                <circle cx="300" cy="192" r="3" />
+                <circle cx="500" cy="190" r="3" />
+              </g>
 
               {/* Combustion Chamber */}
               <rect x="400" y="110" width="100" height="80" className={`${combustorColor} transition-all duration-500`} style={{ opacity: combustorOpacity }} rx="10" />
@@ -160,6 +183,16 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
               {/* Struts */}
               <line x1="150" y1="50" x2="150" y2="80" stroke="#475569" strokeWidth="4" />
               <line x1="150" y1="220" x2="150" y2="250" stroke="#475569" strokeWidth="4" />
+
+              {/* Extinguisher Cloud Animation */}
+              {animationKey && (
+                  <g key={animationKey} className="extinguisher-cloud" transform="translate(700, 150)" style={{ pointerEvents: 'none' }}>
+                      <circle cx="0" cy="0" r="60" fill="white" opacity="0.8" />
+                      <circle cx="-30" cy="20" r="45" fill="white" opacity="0.7" />
+                      <circle cx="30" cy="-10" r="50" fill="white" opacity="0.75" />
+                      <circle cx="20" cy="30" r="40" fill="white" opacity="0.65" />
+                  </g>
+              )}
            </svg>
        </div>
     </div>
