@@ -14,10 +14,13 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
   // Component Status Logic
   const getStatus = (val: number, warn: number, crit: number, isFire: boolean = false) => {
       if (isFire) return { label: 'FIRE', color: 'text-red-500 animate-pulse', dot: 'bg-red-500' };
+      if (state === EngineState.SEIZED) return { label: 'FAILURE', color: 'text-red-700 font-black', dot: 'bg-red-900' };
       if (val >= crit) return { label: 'CRITICAL', color: 'text-red-500', dot: 'bg-red-500' };
       if (val >= warn) return { label: 'WARNING', color: 'text-amber-500', dot: 'bg-amber-500' };
       return { label: 'NORMAL', color: 'text-emerald-500', dot: 'bg-emerald-500' };
   };
+
+  const isSeized = state === EngineState.SEIZED;
 
   const fanStatus = getStatus(n1, 98, 102);
   const compStatus = getStatus(n2, 98, 102);
@@ -36,6 +39,11 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
       combustorColor = 'fill-amber-500';
       combustorOpacity = 0.3 + (intensity * 0.6);
   }
+  
+  if (isSeized) {
+      combustorColor = 'fill-slate-900';
+      combustorOpacity = 0.8;
+  }
 
   return (
     <div className="w-full h-80 bg-slate-900/50 rounded-lg border border-slate-700/50 flex flex-col relative overflow-hidden backdrop-blur-sm">
@@ -52,7 +60,16 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
        </div>
 
        <div className="flex-1 relative flex items-center justify-center p-4">
-           <svg viewBox="0 0 800 300" className="w-full h-full max-w-3xl drop-shadow-2xl">
+           {isSeized && (
+               <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                   <div className="bg-red-950/90 border-2 border-red-600 p-4 rounded-lg flex flex-col items-center animate-pulse">
+                       <span className="text-2xl font-black text-red-500 tracking-[0.2em] mb-1">CATASTROPHIC FAILURE</span>
+                       <span className="text-xs font-mono text-red-300">CORE SEIZURE DETECTED • STRUCTURAL INTEGRITY LOSS</span>
+                   </div>
+               </div>
+           )}
+
+           <svg viewBox="0 0 800 300" className={`w-full h-full max-w-3xl drop-shadow-2xl transition-all duration-1000 ${isSeized ? 'grayscale brightness-50 contrast-125' : ''}`}>
               <defs>
                  <linearGradient id="metal" x1="0" y1="0" x2="0" y2="1">
                      <stop offset="0%" stopColor="#475569" />
@@ -71,28 +88,65 @@ export const EngineSchematic: React.FC<EngineSchematicProps> = ({ n1, n2, egt, s
               {/* Combustion Chamber */}
               <rect x="400" y="110" width="100" height="80" className={`${combustorColor} transition-all duration-500`} style={{ opacity: combustorOpacity }} rx="10" />
 
-              {/* Shafts */}
-              <rect x="200" y="145" width="450" height="10" fill="#334155" />
-              <rect x="100" y="148" width="600" height="4" fill="#94a3b8" />
+              {/* Shafts - Broken if Seized */}
+              {isSeized ? (
+                <g>
+                   {/* Broken Low Pressure Shaft */}
+                   <rect x="100" y="152" width="200" height="4" fill="#64748b" transform="rotate(2, 200, 152)" />
+                   <rect x="350" y="145" width="300" height="4" fill="#64748b" transform="rotate(-3, 500, 145)" />
+                   
+                   {/* Broken High Pressure Shaft */}
+                   <rect x="200" y="145" width="200" height="10" fill="#1e293b" transform="rotate(-1, 300, 145)" />
+                   <rect x="450" y="150" width="200" height="10" fill="#1e293b" transform="rotate(4, 550, 150)" />
+                </g>
+              ) : (
+                <g>
+                    <rect x="200" y="145" width="450" height="10" fill="#334155" />
+                    <rect x="100" y="148" width="600" height="4" fill="#94a3b8" />
+                </g>
+              )}
 
               {/* N2 Compressor Stages */}
-              <g>
+              <g opacity={isSeized ? 0.6 : 1}>
                   {[220, 240, 260, 280, 300, 320, 340].map((x, i) => (
-                      <line key={`comp-${i}`} x1={x} y1="100" x2={x} y2="200" stroke={compStatus.label === 'CRITICAL' ? '#ef4444' : '#3b82f6'} strokeWidth="4" />
+                      <line 
+                        key={`comp-${i}`} 
+                        x1={x} y1="100" x2={x} y2="200" 
+                        stroke={compStatus.label === 'CRITICAL' ? '#ef4444' : '#3b82f6'} 
+                        strokeWidth="4" 
+                        transform={isSeized ? `rotate(${Math.random() * 20 - 10}, ${x}, 150)` : ""}
+                      />
                   ))}
                   {[550, 580, 610].map((x, i) => (
-                      <line key={`turb-${i}`} x1={x} y1="110" x2={x} y2="190" stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#a855f7'} strokeWidth="4" />
+                      <line 
+                        key={`turb-${i}`} 
+                        x1={x} y1="110" x2={x} y2="190" 
+                        stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#a855f7'} 
+                        strokeWidth="4" 
+                        transform={isSeized ? `rotate(${Math.random() * 20 - 10}, ${x}, 150)` : ""}
+                      />
                   ))}
               </g>
 
               {/* N1 Fan */}
-              <g>
-                  <line x1="120" y1="55" x2="120" y2="245" stroke={fanStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} strokeWidth="12" strokeLinecap="round" />
-                  <line x1="680" y1="100" x2="680" y2="200" stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} strokeWidth="6" />
+              <g opacity={isSeized ? 0.6 : 1}>
+                  <line 
+                    x1="120" y1="55" x2="120" y2="245" 
+                    stroke={fanStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} 
+                    strokeWidth="12" 
+                    strokeLinecap="round" 
+                    transform={isSeized ? "rotate(15, 120, 150)" : ""}
+                  />
+                  <line 
+                    x1="680" y1="100" x2="680" y2="200" 
+                    stroke={turbStatus.label === 'CRITICAL' ? '#ef4444' : '#22d3ee'} 
+                    strokeWidth="6" 
+                    transform={isSeized ? "rotate(-10, 680, 150)" : ""}
+                  />
               </g>
 
               {/* Exhaust Plume */}
-              {(egt > 400 || state === EngineState.FIRE) && (
+              {(egt > 400 || state === EngineState.FIRE) && !isSeized && (
                   <path 
                     d="M 700,120 L 780,100 L 780,200 L 700,180 Z" 
                     fill="url(#exhaust)" 

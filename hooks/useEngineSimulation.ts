@@ -59,7 +59,8 @@ export const useEngineSimulation = () => {
     n2: 0,
     egt: 20,
     oilT: 20,
-    oilFailureTimer: 0
+    oilFailureTimer: 0,
+    fireDuration: 0
   });
 
   // Handle Failure Toggling with Delay
@@ -170,6 +171,17 @@ export const useEngineSimulation = () => {
           }
       } else if (!failures.oilPumpFailure) {
           ps.oilFailureTimer = 0;
+      }
+
+      // Fire Failure Cascade Logic (7.5s limit)
+      if (failures.engineFire && state !== EngineState.SEIZED) {
+          ps.fireDuration += SIM_RATE;
+          
+          if (ps.fireDuration > 7500) {
+              setState(EngineState.SEIZED);
+          }
+      } else {
+          ps.fireDuration = 0;
       }
 
       // --- State Machine ---
