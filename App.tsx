@@ -235,7 +235,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Right: Systems (Pneumatics & Fire) */}
-        <div className="w-full md:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0">
+        <div className="w-full md:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
             {/* Bleed Air & Packs Panel */}
             <BleedPanel 
                 telemetry={telemetry}

@@ -303,8 +303,9 @@ export const useEngineSimulation = () => {
       // EGT (Exhaust Gas Temp)
       let targetEgt = 20; // Ambient
       
-      // FIX: This comparison appears to be unintentional because the types have no overlap. The `state !== EngineState.SEIZED` check is redundant because `fuelFlowing` is already false when the engine is seized. Removing it resolves a TypeScript type inference error.
-      if (state !== EngineState.OFF && fuelFlowing) {
+      // FIX: Swapped order of conditions to potentially resolve a TypeScript type inference issue
+      // where the compiler incorrectly flags a type overlap error.
+      if (fuelFlowing && state !== EngineState.OFF) {
           // Base operating temp
           targetEgt = 400 + (ps.n2 - 60) * 12;
           

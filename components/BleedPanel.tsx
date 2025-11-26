@@ -16,33 +16,24 @@ const ScrewHead: React.FC<{ className?: string }> = ({ className }) => (
     </div>
 );
 
-const GuardedToggleSwitch: React.FC<{
-    label: string,
-    active: boolean,
-    onClick: () => void,
-    onLabel?: string,
-    offLabel?: string
-}> = ({ label, active, onClick, onLabel="ON", offLabel="OFF" }) => {
+const ToggleSwitch: React.FC<{
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}> = ({ label, active, onClick }) => {
     return (
-        <div className="flex flex-col items-center gap-1 font-sans">
-            <div className="w-3 h-3 rounded-full border-2 border-black/50 bg-slate-900 flex items-center justify-center mb-1">
-                <div className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-amber-400 shadow-[0_0_4px_#fbbf24]' : 'bg-slate-700'}`}></div>
-            </div>
-            <span className="text-[9px] text-slate-400 font-bold">{onLabel}</span>
-            <button onClick={onClick} className="w-8 h-12 relative flex items-center justify-center group">
-                <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-red-800 border-2 border-red-900 shadow-[inset_0_1px_2px_black] group-active:bg-red-700"></div>
-                <div className={`
-                    absolute w-2 h-10 bg-gradient-to-b from-slate-200 to-slate-500 rounded-full
-                    border border-slate-600 shadow-md transition-transform duration-200
-                    origin-center group-active:scale-95
-                    ${active ? '-rotate-[30deg]' : 'rotate-[30deg]'}
-                `}></div>
+        <div className="flex items-center justify-between w-full px-4">
+            <span className="text-sm font-bold text-slate-300 tracking-wider uppercase">{label}</span>
+            <button
+                onClick={onClick}
+                className={`w-14 h-7 rounded-full p-1 transition-colors relative shadow-inner ${active ? 'bg-emerald-600' : 'bg-slate-800 border border-slate-900'}`}
+            >
+                <div className={`w-5 h-5 bg-white rounded-full shadow-md transition-transform ${active ? 'translate-x-7' : 'translate-x-0'}`}></div>
             </button>
-            <span className="text-[9px] text-slate-400 font-bold mb-1">{offLabel}</span>
-            <span className="text-xs text-slate-300 font-bold tracking-wider">{label}</span>
         </div>
-    )
+    );
 };
+
 
 export const BleedPanel: React.FC<BleedPanelProps> = ({ telemetry, controls, setControls }) => {
   
@@ -61,27 +52,22 @@ export const BleedPanel: React.FC<BleedPanelProps> = ({ telemetry, controls, set
             AIR CONDITIONING
         </h3>
         
-        <div className="grid grid-cols-3 items-center gap-4 py-4">
-             <GuardedToggleSwitch 
+        <div className="flex flex-col items-center gap-4 py-4">
+             <ToggleSwitch 
+                label="ENG BLEED" 
+                active={controls.bleedAir} 
+                onClick={() => toggleControl('bleedAir')} 
+             />
+             <div className="h-px w-4/5 bg-slate-600/50 my-2"></div>
+             <ToggleSwitch 
                 label="PACK 1" 
                 active={controls.packL} 
                 onClick={() => toggleControl('packL')} 
-                onLabel="ON" 
-                offLabel="OFF" 
              />
-             <GuardedToggleSwitch 
-                label="BLEED" 
-                active={controls.bleedAir} 
-                onClick={() => toggleControl('bleedAir')} 
-                onLabel="OPEN" 
-                offLabel="CLSD" 
-             />
-             <GuardedToggleSwitch 
+             <ToggleSwitch 
                 label="PACK 2" 
                 active={controls.packR} 
                 onClick={() => toggleControl('packR')} 
-                onLabel="ON" 
-                offLabel="OFF" 
              />
         </div>
 
