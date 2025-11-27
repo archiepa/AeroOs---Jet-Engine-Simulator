@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useEffect } from 'react';
 import { useEngineSimulation } from './hooks/useEngineSimulation';
 import { CircularGauge, GaugeBug } from './components/Gauge';
@@ -10,6 +8,7 @@ import { FirePanel } from './components/FirePanel';
 import { FailuresMenu } from './components/FailuresMenu';
 import { EngineSchematic } from './components/EngineSchematic';
 import { BleedPanel } from './components/BleedPanel';
+import { FuelPanel } from './components/FuelPanel';
 import { EngineTelemetry } from './types';
 import { Activity, Cpu, AlertOctagon } from 'lucide-react';
 
@@ -58,7 +57,8 @@ const App: React.FC = () => {
       fireSystem,
       dischargeBottle,
       toggleFireHandle,
-      toggleFireMaster
+      toggleFireMaster,
+      fuelSystem
   } = useEngineSimulation();
   
   const [history, setHistory] = useState<EngineTelemetry[]>([]);
@@ -238,7 +238,7 @@ const App: React.FC = () => {
             </div>
         </div>
 
-        {/* Right: Systems (Pneumatics & Fire) */}
+        {/* Right: Systems (Pneumatics & Fire & Fuel) */}
         <div className="w-full md:w-96 bg-slate-900 border-t md:border-t-0 md:border-l border-slate-800 flex flex-col shrink-0 overflow-y-auto custom-scrollbar">
             {/* Bleed Air & Packs Panel */}
             <BleedPanel 
@@ -253,6 +253,13 @@ const App: React.FC = () => {
                 onPullHandle={toggleFireHandle}
                 onDischarge={dischargeBottle}
                 onToggleMaster={toggleFireMaster}
+            />
+
+            {/* Fuel Management System */}
+            <FuelPanel 
+                fuelSystem={fuelSystem}
+                controls={controls}
+                setControls={setControls}
             />
         </div>
 

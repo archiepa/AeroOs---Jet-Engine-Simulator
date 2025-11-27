@@ -275,4 +275,55 @@ export const BarGauge: React.FC<GaugeProps> = ({
             </div>
         </div>
     );
-}
+};
+
+export const VerticalBarGauge: React.FC<GaugeProps> = ({ 
+    label, value, min, max, unit, warningLow, criticalLow 
+}) => {
+    const range = max - min;
+    const percent = Math.min(Math.max(((value - min) / range) * 100, 0), 100);
+    
+    let barColor = 'bg-emerald-500';
+    let status: 'normal' | 'warning' | 'critical' = 'normal';
+
+    if (criticalLow && value <= criticalLow) {
+        barColor = 'bg-red-500';
+        status = 'critical';
+    }
+    else if (warningLow && value <= warningLow) {
+        barColor = 'bg-amber-500';
+        status = 'warning';
+    }
+
+    return (
+        <div className="relative bg-zinc-800 p-2 rounded border-t border-l border-zinc-700 border-b-4 border-r-4 border-black flex flex-col items-center h-48 w-16">
+             <ScrewHead className="absolute top-1 left-1 w-1.5 h-1.5" />
+             <WarningLight className="absolute top-1 right-1" status={status} size="sm" />
+             <ScrewHead className="absolute bottom-1 left-1 w-1.5 h-1.5" />
+             <ScrewHead className="absolute bottom-1 right-1 w-1.5 h-1.5" />
+
+            <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-1">{label}</span>
+            
+            <div className="flex-1 w-6 bg-black shadow-[inset_0_1px_3px_rgba(0,0,0,1)] rounded-sm border border-zinc-700 relative overflow-hidden flex flex-col justify-end">
+                {/* Scale Ticks */}
+                <div className="absolute inset-0 w-full h-full flex flex-col justify-between py-0.5 z-10">
+                    {[...Array(10)].map((_, i) => (
+                        <div key={i} className="w-full h-[1px] bg-zinc-800/50"></div>
+                    ))}
+                </div>
+
+                <div 
+                    className={`w-full ${barColor} transition-all duration-300 ease-out relative`} 
+                    style={{ height: `${percent}%` }}
+                >
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/50"></div>
+                </div>
+            </div>
+
+            <div className="mt-2 bg-[#1a1a1a] border border-zinc-700 px-1 rounded shadow-inner w-full text-center">
+                 <span className="text-[10px] font-mono text-[#ff9900] font-bold">{value.toFixed(0)}</span>
+            </div>
+            <span className="text-[8px] text-zinc-500 font-bold mt-0.5">{unit}</span>
+        </div>
+    );
+};

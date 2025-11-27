@@ -1,6 +1,4 @@
 
-
-
 export interface EngineTelemetry {
   n1: number; // Fan speed %
   n2: number; // Core speed %
@@ -25,13 +23,25 @@ export enum EngineState {
 
 export interface EngineControls {
   masterSwitch: boolean;
-  fuelPump: boolean;
+  fuelPump: boolean; // Master Engine Pump (LP Valve)
   ignition: boolean;
   starter: boolean;
   throttle: number; // 0-100
   bleedAir: boolean; // Master Bleed Valve
   packL: boolean;
   packR: boolean;
+  // Fuel System Specifics
+  tankPumpL: boolean;
+  tankPumpR: boolean;
+  crossfeed: boolean;
+  dumpL: boolean;
+  dumpR: boolean;
+}
+
+export interface FuelSystemState {
+  tankL: number; // kg
+  tankR: number; // kg
+  capacity: number; // kg per tank
 }
 
 export interface SystemAlert {

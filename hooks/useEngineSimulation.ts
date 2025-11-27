@@ -1,5 +1,6 @@
+
 import { useState, useEffect, useRef } from 'react';
-import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig } from '../types';
+import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig, FuelSystemState } from '../types';
 
 const SIM_RATE = 20; // ms
 
@@ -22,6 +23,17 @@ export const useEngineSimulation = () => {
     bleedAir: false,
     packL: false,
     packR: false,
+    tankPumpL: true,
+    tankPumpR: true,
+    crossfeed: false,
+    dumpL: false,
+    dumpR: false,
+  });
+
+  const [fuelSystem, setFuelSystem] = useState<FuelSystemState>({
+      tankL: 4800, // kg
+      tankR: 4800, // kg
+      capacity: 5000
   });
 
   const [failures, setFailures] = useState<FailureState>({
@@ -155,14 +167,25 @@ export const useEngineSimulation = () => {
       const ps = physicsState.current;
       let targetN2 = 0;
       
-      // FIX: Pre-calculate isSeized to avoid a TypeScript control-flow analysis issue
-      // where `state` is incorrectly narrowed after the exhaustive switch statement below.
       const isSeized = state === EngineState.SEIZED;
 
+      // Fuel Logic
+      // Check for fuel availability in the active tank
+      let fuelAvailable = false;
+      
+      // Default: Engine runs on Left Tank
+      if (controls.tankPumpL && fuelSystem.tankL > 0) {
+          fuelAvailable = true;
+      } 
+      // Crossfeed from Right Tank
+      else if (controls.crossfeed && controls.tankPumpR && fuelSystem.tankR > 0) {
+          fuelAvailable = true;
+      }
+      
       // A seized engine cannot provide power, regardless of master switch position.
       const powerAvailable = controls.masterSwitch && !isSeized;
       // Fire Handle cuts fuel physically
-      const fuelFlowing = controls.fuelPump && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
+      const fuelFlowing = controls.fuelPump && fuelAvailable && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
       const ignitionActive = controls.ignition && powerAvailable;
       const starterActive = controls.starter && powerAvailable;
 
@@ -197,11 +220,9 @@ export const useEngineSimulation = () => {
       }
 
       // --- State Machine ---
-      // FIX: Combined state logic into a single switch to resolve a TypeScript control-flow analysis issue.
       switch (state) {
         case EngineState.SEIZED:
           targetN2 = 0;
-          // Engine is destroyed. Cannot restart.
           break;
         case EngineState.OFF:
           // Starter can drive N2 up to 25% (Max Motoring)
@@ -273,7 +294,7 @@ export const useEngineSimulation = () => {
           if (starterActive) targetN2 = 25; // Can still crank
           if (ps.n2 < 2 && !starterActive) setState(EngineState.OFF);
           
-          // Relight logic (Hot start possibility if fuel reintroduced quickly)
+          // Relight logic
           if (fuelFlowing && ignitionActive && ps.n2 > 15) {
              setState(EngineState.STARTING);
           }
@@ -308,7 +329,6 @@ export const useEngineSimulation = () => {
       ps.n1 += (limitedN1 - ps.n1) * 0.08;
 
       // EGT (Exhaust Gas Temp)
-      // FIX: Reworked EGT logic into a flatter if-else structure to avoid a TypeScript control-flow analysis issue.
       let targetEgt: number;
       if (isSeized) {
         targetEgt = failures.engineFire ? 1200 : 200;
@@ -340,6 +360,50 @@ export const useEngineSimulation = () => {
          ff = 300 + Math.pow((ps.n2 - 15) / 85, 2.5) * 4500;
          if (state === EngineState.STARTING) ff = 400; // Starting flow
       }
+      
+      // Calculate Fuel Consumption
+      // kg per simulation tick
+      const consumptionRate = (ff / 3600) * (SIM_RATE / 1000); 
+      const dumpRate = 35 * (SIM_RATE / 1000); // 35 kg/s dump rate (~2000kg/min)
+
+      // Update Fuel Tanks
+      setFuelSystem(prev => {
+          let newL = prev.tankL;
+          let newR = prev.tankR;
+
+          // Consumption
+          if (consumptionRate > 0) {
+              if (controls.crossfeed) {
+                  // If X-Feed, consume from tank with more fuel to balance, or both? 
+                  // Simple logic: If X-Feed on, consume from right if left is empty, else Left.
+                  // Better: If X-Feed on, consume from both (simplified)
+                  if (newL > 0 && newR > 0) {
+                      newL -= consumptionRate / 2;
+                      newR -= consumptionRate / 2;
+                  } else if (newL > 0) {
+                      newL -= consumptionRate;
+                  } else {
+                      newR -= consumptionRate;
+                  }
+              } else {
+                  // Normal: Engine 1 feeds from Left
+                  if (newL > 0 && controls.tankPumpL) {
+                      newL -= consumptionRate;
+                  } 
+              }
+          }
+
+          // Dumping
+          if (controls.dumpL && newL > 0) newL -= dumpRate;
+          if (controls.dumpR && newR > 0) newR -= dumpRate;
+
+          return {
+              ...prev,
+              tankL: Math.max(0, newL),
+              tankR: Math.max(0, newR)
+          };
+      });
+
 
       // Oil Pressure
       let targetOilP = Math.min(90, ps.n2 * 1.1);
@@ -364,7 +428,6 @@ export const useEngineSimulation = () => {
           baseVib = 4.5 + Math.random(); // Max out sensor
       }
       
-      // Massive vibration right before/during seizure if moving
       if (isSeized) {
           baseVib = 0;
           vibNoise = 0;
@@ -374,19 +437,13 @@ export const useEngineSimulation = () => {
       // --- Pneumatics (Bleed Air) ---
       let targetBleedPsi = 0;
       if (ps.n2 > 20 && controls.bleedAir && !isSeized) {
-          // Base pressure generation from N2 compressor
-          // 20% N2 = 0 psi, 60% N2 = 30 psi, 100% N2 = 50 psi
           targetBleedPsi = (ps.n2 - 20) * 0.6; 
           
-          // Pack Loads (Packs consume air, lowering manifold pressure slightly)
           if (controls.packL) targetBleedPsi -= 4;
           if (controls.packR) targetBleedPsi -= 4;
       }
       
-      // Clamp pressure
       targetBleedPsi = Math.max(0, targetBleedPsi);
-
-      // Pressure lag
       ps.bleedPsi += (targetBleedPsi - ps.bleedPsi) * 0.2;
 
       // Update React State
@@ -405,7 +462,7 @@ export const useEngineSimulation = () => {
     }, SIM_RATE);
 
     return () => clearInterval(timer);
-  }, [controls, state, failures, fireSystem]);
+  }, [controls, state, failures, fireSystem, fuelSystem.tankL, fuelSystem.tankR]); // Depend on fuel levels for flameout logic check
 
   return { 
       state, 
@@ -419,6 +476,7 @@ export const useEngineSimulation = () => {
       fireSystem,
       dischargeBottle,
       toggleFireHandle,
-      toggleFireMaster
+      toggleFireMaster,
+      fuelSystem
   };
 };
