@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { EngineControls, FuelSystemState } from '../types';
 import { VerticalBarGauge } from './Gauge';
@@ -113,8 +112,8 @@ export const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystem, controls, setC
                     value={fuelSystem.tankL} 
                     min={0} max={fuelSystem.capacityL} 
                     unit="KG" 
-                    warningLow={500} 
-                    criticalLow={200} 
+                    warningLow={150} 
+                    criticalLow={50} 
                 />
                 <TapSwitch 
                     label="L PUMP" 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { EngineTelemetry, EngineControls, EngineState, FailureState, FireSystemState, FailureConfig, FuelSystemState } from '../types';
 
@@ -30,9 +29,9 @@ export const useEngineSimulation = () => {
   });
 
   const [fuelSystem, setFuelSystem] = useState<FuelSystemState>({
-      tankL: 4800, // kg
+      tankL: 750, // kg
       tankR: 200, // kg - Small backup tank
-      capacityL: 5000,
+      capacityL: 750,
       capacityR: 200
   });
 
@@ -468,7 +467,7 @@ export const useEngineSimulation = () => {
       controls, 
       setControls, 
       telemetry, 
-      failures,
+      failures, 
       failureConfigs,
       toggleFailure,
       updateFailureConfig,
