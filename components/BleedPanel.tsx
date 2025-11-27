@@ -1,6 +1,6 @@
 import React from 'react';
 import { EngineControls, EngineTelemetry } from '../types';
-import { CircularGauge } from './Gauge';
+import { CircularGauge, GaugeBug } from './Gauge';
 
 interface BleedPanelProps {
   telemetry: EngineTelemetry;
@@ -91,6 +91,7 @@ export const BleedPanel: React.FC<BleedPanelProps> = ({ telemetry, controls, set
                 unit="PSI" 
                 size="md"
                 warningHigh={55}
+                bugs={[{ value: 25, color: '#22d3ee' }, { value: 38, color: '#ec4899' }]}
              />
         </div>
     </div>

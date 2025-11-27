@@ -44,8 +44,8 @@ export const ControlPanel: React.FC<ControlsProps> = ({ controls, setControls })
         </div>
         <div className="flex justify-between w-full text-xs font-mono text-slate-500">
             <span>IDLE</span>
-            <span>CLB</span>
             <span>CRZ</span>
+            <span>CLB</span>
             <span>TOGA</span>
         </div>
       </div>

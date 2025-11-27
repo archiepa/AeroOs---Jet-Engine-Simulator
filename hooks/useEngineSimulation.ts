@@ -155,8 +155,12 @@ export const useEngineSimulation = () => {
       const ps = physicsState.current;
       let targetN2 = 0;
       
+      // FIX: Pre-calculate isSeized to avoid a TypeScript control-flow analysis issue
+      // where `state` is incorrectly narrowed after the exhaustive switch statement below.
+      const isSeized = state === EngineState.SEIZED;
+
       // A seized engine cannot provide power, regardless of master switch position.
-      const powerAvailable = controls.masterSwitch && state !== EngineState.SEIZED;
+      const powerAvailable = controls.masterSwitch && !isSeized;
       // Fire Handle cuts fuel physically
       const fuelFlowing = controls.fuelPump && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
       const ignitionActive = controls.ignition && powerAvailable;
@@ -165,7 +169,7 @@ export const useEngineSimulation = () => {
       // --- Failure Cascades ---
       
       // Oil Pump Failure Logic
-      if (failures.oilPumpFailure && state !== EngineState.OFF && state !== EngineState.SEIZED && ps.n2 > 5) {
+      if (failures.oilPumpFailure && state !== EngineState.OFF && !isSeized && ps.n2 > 5) {
           ps.oilFailureTimer += SIM_RATE;
 
           // Immediate effect: Fire caused by oil leak/overheat
@@ -182,7 +186,7 @@ export const useEngineSimulation = () => {
       }
 
       // Fire Failure Cascade Logic (7.5s limit)
-      if (failures.engineFire && state !== EngineState.SEIZED) {
+      if (failures.engineFire && !isSeized) {
           ps.fireDuration += SIM_RATE;
           
           if (ps.fireDuration > 7500) {
@@ -290,7 +294,7 @@ export const useEngineSimulation = () => {
       if (n2Delta < 0) accelRate = 0.05;
       
       // Instant stop for seizure
-      if (state === EngineState.SEIZED) accelRate = 1.0; 
+      if (isSeized) accelRate = 1.0; 
 
       ps.n2 += n2Delta * accelRate;
 
@@ -299,14 +303,14 @@ export const useEngineSimulation = () => {
       // Cap N1 relative to N2 physics
       let limitedN1 = Math.min(targetN1, ps.n2 * 1.1); 
       
-      if (state === EngineState.SEIZED) limitedN1 = 0; // Fan stops too
+      if (isSeized) limitedN1 = 0; // Fan stops too
 
       ps.n1 += (limitedN1 - ps.n1) * 0.08;
 
       // EGT (Exhaust Gas Temp)
       // FIX: Reworked EGT logic into a flatter if-else structure to avoid a TypeScript control-flow analysis issue.
       let targetEgt: number;
-      if (state === EngineState.SEIZED) {
+      if (isSeized) {
         targetEgt = failures.engineFire ? 1200 : 200;
       } else if (failures.engineFire) {
         targetEgt = 1250 + (Math.random() * 50); // Massive uncontrollable fire
@@ -331,7 +335,7 @@ export const useEngineSimulation = () => {
 
       // Fuel Flow
       let ff = 0;
-      if (fuelFlowing && state !== EngineState.SEIZED) {
+      if (fuelFlowing && !isSeized) {
          // Fuel flow correlates strongly with N2
          ff = 300 + Math.pow((ps.n2 - 15) / 85, 2.5) * 4500;
          if (state === EngineState.STARTING) ff = 400; // Starting flow
@@ -339,14 +343,14 @@ export const useEngineSimulation = () => {
 
       // Oil Pressure
       let targetOilP = Math.min(90, ps.n2 * 1.1);
-      if (failures.oilPumpFailure || state === EngineState.SEIZED) targetOilP = 0; // Failure
+      if (failures.oilPumpFailure || isSeized) targetOilP = 0; // Failure
       
       const oilP = targetOilP + (Math.random() * 2 - 1); 
 
       // Oil Temp
       let targetOilT = 20 + ps.n2 * 0.9;
       if (failures.engineFire) targetOilT += 50; // Fire heats everything
-      if (state === EngineState.SEIZED) targetOilT = 200; // Friction spike then cool
+      if (isSeized) targetOilT = 200; // Friction spike then cool
       
       ps.oilT += (targetOilT - ps.oilT) * 0.005; // Very slow thermal mass
 
@@ -361,7 +365,7 @@ export const useEngineSimulation = () => {
       }
       
       // Massive vibration right before/during seizure if moving
-      if (state === EngineState.SEIZED) {
+      if (isSeized) {
           baseVib = 0;
           vibNoise = 0;
       }
@@ -369,7 +373,7 @@ export const useEngineSimulation = () => {
 
       // --- Pneumatics (Bleed Air) ---
       let targetBleedPsi = 0;
-      if (ps.n2 > 20 && controls.bleedAir && state !== EngineState.SEIZED) {
+      if (ps.n2 > 20 && controls.bleedAir && !isSeized) {
           // Base pressure generation from N2 compressor
           // 20% N2 = 0 psi, 60% N2 = 30 psi, 100% N2 = 50 psi
           targetBleedPsi = (ps.n2 - 20) * 0.6; 
