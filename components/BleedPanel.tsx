@@ -91,7 +91,11 @@ export const BleedPanel: React.FC<BleedPanelProps> = ({ telemetry, controls, set
                 unit="PSI" 
                 size="md"
                 warningHigh={55}
-                bugs={[{ value: 25, color: '#22d3ee' }, { value: 38, color: '#ec4899' }]}
+                bugs={[
+                    { value: 25, color: '#22d3ee' }, 
+                    { value: 38, color: '#ec4899' },
+                    { value: 40, color: '#ef4444' }
+                ]}
              />
         </div>
     </div>
