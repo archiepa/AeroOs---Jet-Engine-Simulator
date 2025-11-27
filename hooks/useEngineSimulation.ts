@@ -31,8 +31,9 @@ export const useEngineSimulation = () => {
 
   const [fuelSystem, setFuelSystem] = useState<FuelSystemState>({
       tankL: 4800, // kg
-      tankR: 4800, // kg
-      capacity: 5000
+      tankR: 200, // kg - Small backup tank
+      capacityL: 5000,
+      capacityR: 200
   });
 
   const [failures, setFailures] = useState<FailureState>({

@@ -41,7 +41,8 @@ export interface EngineControls {
 export interface FuelSystemState {
   tankL: number; // kg
   tankR: number; // kg
-  capacity: number; // kg per tank
+  capacityL: number; // kg
+  capacityR: number; // kg
 }
 
 export interface SystemAlert {

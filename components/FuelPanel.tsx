@@ -111,7 +111,7 @@ export const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystem, controls, setC
                 <VerticalBarGauge 
                     label="L MAIN" 
                     value={fuelSystem.tankL} 
-                    min={0} max={fuelSystem.capacity} 
+                    min={0} max={fuelSystem.capacityL} 
                     unit="KG" 
                     warningLow={500} 
                     criticalLow={200} 
@@ -145,25 +145,25 @@ export const FuelPanel: React.FC<FuelPanelProps> = ({ fuelSystem, controls, setC
                         onClick={() => toggle('dumpL')} 
                     />
                     <GuardedDumpSwitch 
-                        label="DUMP R" 
+                        label="DUMP B" 
                         active={controls.dumpR} 
                         onClick={() => toggle('dumpR')} 
                     />
                 </div>
             </div>
 
-            {/* Right System */}
+            {/* Right System (Now Backup) */}
             <div className="flex flex-col items-center gap-3">
                 <VerticalBarGauge 
-                    label="R MAIN" 
+                    label="BACKUP" 
                     value={fuelSystem.tankR} 
-                    min={0} max={fuelSystem.capacity} 
+                    min={0} max={fuelSystem.capacityR} 
                     unit="KG" 
-                    warningLow={500} 
-                    criticalLow={200} 
+                    warningLow={50} 
+                    criticalLow={10} 
                 />
                 <TapSwitch 
-                    label="R PUMP" 
+                    label="B PUMP" 
                     active={controls.tankPumpR} 
                     onClick={() => toggle('tankPumpR')} 
                 />
