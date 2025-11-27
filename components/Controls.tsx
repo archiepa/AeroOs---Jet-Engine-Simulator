@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Power, Flame, Zap, Wind, RotateCw } from 'lucide-react';
 import { EngineControls } from '../types';
@@ -51,7 +52,7 @@ export const ControlPanel: React.FC<ControlsProps> = ({ controls, setControls })
       </div>
 
       {/* Switch Panel */}
-      <div className="grid grid-cols-5 gap-4 w-full md:w-2/3">
+      <div className="grid grid-cols-4 gap-4 w-full md:w-2/3">
         
         <Switch 
             label="Master" 
@@ -77,12 +78,7 @@ export const ControlPanel: React.FC<ControlsProps> = ({ controls, setControls })
             color="amber"
         />
 
-        <Switch 
-            label="Fuel Pumps" 
-            active={controls.fuelPump} 
-            onClick={() => toggle('fuelPump')} 
-            icon={<Zap size={20} />}
-        />
+        {/* Fuel Pumps Removed */}
 
         <Switch 
             label="Bleed Air" 

@@ -23,7 +23,7 @@ export enum EngineState {
 
 export interface EngineControls {
   masterSwitch: boolean;
-  fuelPump: boolean; // Master Engine Pump (LP Valve)
+  // fuelPump removed
   ignition: boolean;
   starter: boolean;
   throttle: number; // 0-100

@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { EngineTelemetry, EngineState, SystemAlert } from "../types";
 
@@ -19,7 +18,7 @@ export const analyzeEngineStatus = async (
     Tone: Technical, precise, military/aerospace style.
 
     Current State: ${state}
-    Controls: Master=${controls.masterSwitch}, Fuel=${controls.fuelPump}, Ignition=${controls.ignition}, Throttle=${controls.throttle.toFixed(1)}%
+    Controls: Master=${controls.masterSwitch}, Ignition=${controls.ignition}, Throttle=${controls.throttle.toFixed(1)}%
     
     Telemetry:
     - N1 (Fan): ${telemetry.n1.toFixed(1)}%

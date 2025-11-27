@@ -16,15 +16,14 @@ export const useEngineSimulation = () => {
   
   const [controls, setControls] = useState<EngineControls>({
     masterSwitch: false,
-    fuelPump: false,
     ignition: false,
     starter: false,
     throttle: 0,
     bleedAir: false,
     packL: false,
     packR: false,
-    tankPumpL: true,
-    tankPumpR: true,
+    tankPumpL: false, // Default to OFF for manual control
+    tankPumpR: false, // Default to OFF
     crossfeed: false,
     dumpL: false,
     dumpR: false,
@@ -185,7 +184,8 @@ export const useEngineSimulation = () => {
       // A seized engine cannot provide power, regardless of master switch position.
       const powerAvailable = controls.masterSwitch && !isSeized;
       // Fire Handle cuts fuel physically
-      const fuelFlowing = controls.fuelPump && fuelAvailable && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
+      // Removed controls.fuelPump check as logic now relies on tank pumps (fuelAvailable)
+      const fuelFlowing = fuelAvailable && powerAvailable && !failures.fuelPumpFailure && !fireSystem.handlePulled;
       const ignitionActive = controls.ignition && powerAvailable;
       const starterActive = controls.starter && powerAvailable;
 
@@ -374,9 +374,7 @@ export const useEngineSimulation = () => {
           // Consumption
           if (consumptionRate > 0) {
               if (controls.crossfeed) {
-                  // If X-Feed, consume from tank with more fuel to balance, or both? 
-                  // Simple logic: If X-Feed on, consume from right if left is empty, else Left.
-                  // Better: If X-Feed on, consume from both (simplified)
+                  // If X-Feed on, consume from both (simplified)
                   if (newL > 0 && newR > 0) {
                       newL -= consumptionRate / 2;
                       newR -= consumptionRate / 2;
