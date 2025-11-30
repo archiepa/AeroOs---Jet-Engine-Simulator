@@ -1,24 +1,21 @@
 {
-  "name": "aeroos---jet-engine-management",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "name": "aero-os",
+  "version": "1.0.0",
+  "main": "main.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "concurrently \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "build": "vite build && electron-builder"
   },
-  "dependencies": {
-    "react": "^19.2.0",
-    "lucide-react": "^0.554.0",
-    "@google/genai": "^1.30.0",
-    "react-dom": "^19.2.0",
-    "recharts": "^3.5.0"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "@vitejs/plugin-react": "^5.0.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+  "build": {
+    "appId": "com.aeroos.sim",
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Simulation"
+    },
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "package.json"
+    ]
   }
 }
